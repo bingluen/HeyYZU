@@ -1,0 +1,28 @@
+{
+  "name": "heyyzu_backend",
+  "version": "0.0.0",
+  "description": "HeyYzu back-end",
+  "main": "server.js",
+  "scripts": {
+    "test": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/erickson-makotoki/HeyYZU_backend.git"
+  },
+  "keywords": [
+    "nodejs",
+    "python",
+    "yzu",
+    "portal"
+  ],
+  "author": "Erickson Juang",
+  "license": "Apache-1.0",
+  "bugs": {
+    "url": "https://github.com/erickson-makotoki/HeyYZU_backend/issues"
+  },
+  "homepage": "https://github.com/erickson-makotoki/HeyYZU_backend#readme",
+  "dependencies": {
+    "express": "^4.13.3"
+  }
+}
