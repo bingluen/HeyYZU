@@ -1,3 +1,4 @@
 node_modules/
 .DS_store
 mobileApp/pyScript/__pycache__/
+log/*
