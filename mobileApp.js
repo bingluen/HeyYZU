@@ -1,13 +1,34 @@
+/* Setting Path  */
+global.__MobileAppBase = __dirname + '/'
+
 /* Module */
 var express = require('express');
+var bodyParser = require('body-parser');
+var connectMultiparty = require('connect-multiparty');
+
 
 /* Project module */
-var Logging = require('./modules/loggin').('service');
+var Logging = require(__MobileAppBase + 'modules/logging')('service');
 
-var UserRouter = require('./mobileApp/router/user');
+var UserRouter = require(__MobileAppBase + 'mobileApp/router/user');
 
 /* setting app */
 var app = express();
+
+/**
+ * for post request
+ * body-parser => x-www-form-urlencoded
+ * connect-multiparty = > form-data
+ */
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(connectMultiparty());
+
+/**
+ * Setting Router
+ */
+app.use('/user', UserRouter);
+
 
 // catch 404 and forward to error handler
 // next 疑似是擺好看的，官方文件沒說什麼東東會被傳進來
