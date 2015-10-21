@@ -1,43 +1,137 @@
+# -*- coding: utf8 -*-
 import sys
 import json
 import requests
-from bs4 import BeautifulSoup
 import re
-
-r = requests.Session()
-argv = sys.argv
+from pyquery import PyQuery as pq
 
 URL_LOGIN = 'https://portalx.yzu.edu.tw/PortalSocialVB/Login.aspx'
+URL_PROFILE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/ClickMenuLog.aspx?type=App_&SysCode=P1'
+URL_BASICDATA = 'https://portal.yzu.edu.tw/personal/StudentBasic/BasicData.aspx'
+URL_IFRAMESUB = 'https://portalx.yzu.edu.tw/PortalSocialVB/IFrameSub.aspx'
+
+#Status Code:
+#1001   Login success
+#1002   Login fail
+
+portalx_headers = {
+    'Host':'portalx.yzu.edu.tw',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:26.0) Gecko/20100101 Firefox/26.0',
+    'Accept-Language': 'zh-TW,zh;q=0.8,en-US;q=0.5,en;q=0.3',
+    'Accept-Encoding': 'gzip, deflate',
+    'Connection': 'keep-alive'
+}
+
+portal_headers = {
+    'Host':'portal.yzu.edu.tw',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:26.0) Gecko/20100101 Firefox/26.0',
+    'Accept-Language': 'zh-TW,zh;q=0.8,en-US;q=0.5,en;q=0.3',
+    'Accept-Encoding': 'gzip, deflate',
+    'Connection': 'keep-alive'
+}
+
+def stdardOut(message):
+    #sys.stdout.write( message )
+    print( message )
 
 class User:
     def __init__(self, username, password):
         self.message = {}
-        content = r.post(URL_LOGIN).text
-        ecoVIEWSTATEGENERATOR = re.findall('id="__VIEWSTATEGENERATOR" value="([^"]*)"', content, re.S)
-        ecoVIEWSTATE = re.findall('__VIEWSTATE" id="__VIEWSTATE" value="([^"]*)"', content, re.S)[0]
-        ecoEVENTVALIDATION = re.findall('__EVENTVALIDATION" id="__EVENTVALIDATION" value="([^"]*)"', content, re.S)[0]
-        self.postdata={
-                '__VIEWSTATE':ecoVIEWSTATE,
-                '__VIEWSTATEGENERATOR':ecoEVENTVALIDATION,
-                '__EVENTVALIDATION':ecoEVENTVALIDATION,
-                'Txt_UserID':username,
-                'Txt_Password':password,
-                'ibnSubmit':'\xE7\x99\xBB\xE5\x85\xA5'
-                }
-        ##print self.postdata
-        ### do login
-        login_result = r.post(URL_LOGIN, data=self.postdata, verify=False)
+        self.username = username
+        self.password = password
+        self.session  = requests.Session()
+        self.session.headers.update(portalx_headers)
+        self.login()
 
+    def login(self):
+        #1st request(get info)
+        d = pq( self.session.get(URL_LOGIN).text )
+        VIEWSTATE = d("#__VIEWSTATE").attr('value')
+        EVENTVALIDATION = d("#__EVENTVALIDATION").attr('value')
 
-        if len(re.findall('Login Failed',login_result.text)) > 0:
+        #2nd request(login)
+        postdata = {
+            'Txt_UserID': self.username,
+            'Txt_Password': self.password,
+            '__VIEWSTATE': VIEWSTATE,
+            '__EVENTVALIDATION': EVENTVALIDATION,
+            'ibnSubmit': u'登入'
+        }
+        login_result = self.session.post(URL_LOGIN, data=postdata, verify=False).text
+
+        if 'Login Failed' in login_result:
             self.message['status'] = {
-                'state': 'error'
-                'code': 1001,
+                'state': 'loginFail',
+                'statusCode': 1002,
                 'message': 'Login Portal Failed'
             }
-            print(json.dumps(self.message))
-            sys.exit(0)
+        else:
+            self.message['status'] = {
+                'state': 'loginSuccess',
+                'statusCode': 1001,
+                'message': 'Login Portal Success'
+            }
 
 
-if len(argv) == 3:
-    user = User(argv[1], argv[2])
+    def getProfile(self):
+        if(self.message['status']['statusCode'] == 1001):
+            #1st request(to Profile Page)
+            self.session.get(URL_PROFILE)
+            #2nd request(get SessionID)
+            d = pq( self.session.get(URL_IFRAMESUB).text )
+            self.sessionID = d("#SessionID").attr('value')
+
+            #3rd request(get Basic Data)
+            postdata = {
+                'Account': self.username,
+                'SessionID': self.sessionID
+            }
+            self.session.headers.update(portal_headers)
+            profile_result = self.session.post(URL_BASICDATA, data=postdata).text
+
+            #Fetch Data
+            d = pq( profile_result )
+            self.chiName = d("#ctl00_ContentPlaceHolder_MainEdit_Cell_ChiName").text()
+            self.engName = d("#ctl00_ContentPlaceHolder_MainEdit_Txt_EngName").attr('value')
+            self.sex = d("#ctl00_ContentPlaceHolder_MainEdit_Cell_Sex").text()
+            self.birth = d("#ctl00_ContentPlaceHolder_MainEdit_Cell_Birth").text()
+            self.cellphone = d("#ctl00_ContentPlaceHolder_MainEdit_Txt_CellPhone").attr('value')
+            self.mail = d("#ctl00_ContentPlaceHolder_MainEdit_Txt_OtherMail").attr('value')
+
+            self.message['profile'] = {
+                'username': self.username,
+                'password': self.password,
+                'chiName': self.chiName,
+                'engName': self.engName,
+                'sex': self.sex,
+                'birth': self.birth,
+                'cellphone': self.cellphone,
+                'mail': self.mail
+            }
+
+        #Output
+        stdardOut( json.dumps(self.message) )
+
+
+argv = sys.argv
+
+if len(argv) == 4:
+    try:
+
+        method = argv[1]
+        user = User(argv[2], argv[3])
+
+        if(method == 'getProfile'):
+            user.getProfile()
+        elif(method == 'login'):
+            stdardOut( json.dumps(user.message) )
+        else:
+            raise Exception('No such method : ' + method)
+    except Exception as e:
+        print ('error:', e)
+
+else:
+    print('No action specified.')
+    sys.exit()
