@@ -6,7 +6,7 @@ var http = require('http');
 var mobileApp = require('./mobileApp');
 
 //logging
-var Logging = require('./modules/logging').('system');
+var Logging = require('./modules/logging')('system');
 
 /* -----Module-end----- */
 
@@ -61,10 +61,10 @@ MobileAppServer.on('listening', function() {
     ? 'pipe ' + addr
     : 'port ' + addr.port;
   //debug('Listening on ' + bind);
+  Logging.writeMessage('MobileApp Api server have created on ' +  bind, 'status')
 });
 
 MobileAppServer.on('connection', function(socket) {
-  Logging.writeMessage('MobileApp Api server have created on ' +  bind, 'status')
   socket.setTimeout(0);
   // 30 second timeout. Change this as you see fit.
  })

@@ -22,10 +22,9 @@ var logPath = {
     general: 'log/system/general'
   }
 }
-
-var Logging = function(model) {
+var logger = function(model) {
   this.path = logPath[model] || logPath.system;
-  
+
   this.writeMessage = function(messages, messagesType) {
     var type = this.path[messagesType] || this.path.general;
     var logfile = fs.createOutputStream(
@@ -39,6 +38,10 @@ var Logging = function(model) {
     );
     logfile.write('[' + moment().format('YYYY-MM-DD hh:mm:ss') +'] ' + messages + '\n');
   }
+}
+
+var Logging = function(model) {
+  return new logger(model);
 }
 
 module.exports = Logging;
