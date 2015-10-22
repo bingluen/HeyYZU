@@ -7,17 +7,17 @@ module.exports.login = function(req, res, next) {
   loginPortal(req.body.username, req.body.password, function(r) {
     console.log(r)
     res.send('user/login api')
-    Logging.writeMessage('response to (mobileApp/user/login) ' + req.ip ,'access')
+    Logging.writeMessage('response to (mobileApp/user/login) ' + req.ips ,'access')
   })
 
 }
 
 module.exports.profile = function(req, res, next) {
-  Logging.writeMessage('Access mobileApp/user/profile from ' + req.ip ,'access')
+  Logging.writeMessage('Access mobileApp/user/profile from ' + req.ips ,'access')
   getProfile(req.body.username, req.body.password, function(r) {
     console.log(r)
     res.send('user/profile api')
-    Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ip ,'access')
+    Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
   })
 }
 
