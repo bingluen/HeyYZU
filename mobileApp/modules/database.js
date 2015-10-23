@@ -6,7 +6,7 @@ database = mysql.createConnection({
 	host: __MobileConfig.dbhost,
 	user: __MobileConfig.username,
 	password: __MobileConfig.password,
-	database: __MobileConfig.dbname
+	database: __MobileConfigg.dbname
 });
 
 module.exports = database;
