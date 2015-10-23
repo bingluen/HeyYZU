@@ -1,5 +1,6 @@
 var PyScript = require(__MobileAppBase + 'mobileApp/modules/runPython');
 var Logging = require(__MobileAppBase + 'modules/logging')('mobileAPI');
+var Database = require(__MobileAppBase + 'modules/database');
 
 module.exports.login = function(req, res, next) {
 
@@ -22,8 +23,20 @@ module.exports.profile = function(req, res, next) {
 }
 
 
-var isRegister = function() {
+var isRegister = function(userData, next) {
+  var queryStatment = 'SELECT id, portalUsername, protalPassword, accessToken Where portalUsername = ?';
+  var params = userData.username;
+  database.query(queryStatment, params, function(err, row, field) {
+    if (row.length != 1) {
+      next(false)
+    } else {
+      next(true)
+    }
+  });
+}
 
+var doRegister = function(userData, next) {
+  
 }
 
 var loginPortal = function(username, password, next) {
