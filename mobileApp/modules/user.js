@@ -1,9 +1,9 @@
-var PyScript = require(__MobileAppBase + 'mobileApp/modules/runPython');
-var Logging = require(__MobileAppBase + 'modules/logging')('mobileAPI');
+var PyScript = require(__MobileAppBase + 'modules/runPython');
+var Logging = require(__SystemBase + 'modules/logging')('mobileAPI');
 var Database = require(__MobileAppBase + 'modules/database');
+var RSA = require(__MobileAppBase + 'modules/rsa');
 
 module.exports.login = function(req, res, next) {
-
   Logging.writeMessage('Access mobileApp/user/login from ' + req.ip ,'access')
   loginPortal(req.body.username, req.body.password, function(r) {
     console.log(r)
@@ -36,7 +36,6 @@ var isRegister = function(userData, next) {
 }
 
 var doRegister = function(userData, next) {
-  
 }
 
 var loginPortal = function(username, password, next) {
