@@ -4,5 +4,8 @@
 	"username": "",
 	"password": "",
 	"timezone": "Asia/Taipei",
-	"fbappid":
+	"rsaKey": {
+		"public": "",
+		"private": ""
+	}
 }
