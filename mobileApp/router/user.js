@@ -1,4 +1,4 @@
-var user = require( __MobileAppBase + 'mobileApp/modules/user');
+var user = require( __MobileAppBase + 'modules/user');
 var express = require('express');
 var router = express.Router();
 

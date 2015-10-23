@@ -1,5 +1,5 @@
 /* Setting Path  */
-global.__MobileAppBase = __dirname + '/'
+global.__MobileAppBase = __dirname + '/mobileApp/'
 
 /* Module */
 var express = require('express');
@@ -8,9 +8,9 @@ var connectMultiparty = require('connect-multiparty');
 
 
 /* Project module */
-var Logging = require(__MobileAppBase + 'modules/logging')('service');
+var Logging = require(__SystemBase + 'modules/logging')('service');
 
-var UserRouter = require(__MobileAppBase + 'mobileApp/router/user');
+var UserRouter = require(__MobileAppBase + 'router/user');
 
 /* setting app */
 var app = express();

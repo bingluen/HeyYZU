@@ -1,3 +1,5 @@
+global.__SystemBase = __dirname + '/'
+
 /* -------Module------- */
 
 //For Http service
