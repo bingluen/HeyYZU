@@ -1,5 +1,6 @@
 /* Setting Path  */
 global.__MobileAppBase = __dirname + '/mobileApp/'
+global.__MobileConfig = require(__MobileAppBase + 'config.json');
 
 /* Module */
 var express = require('express');
