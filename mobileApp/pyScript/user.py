@@ -108,10 +108,10 @@ class User:
                 'password': self.password,
                 'chiName': self.chiName,
                 'engName': self.engName,
-                'sex': self.sex,
+                'gender': self.sex,
                 'birth': self.birth,
                 'cellphone': self.cellphone,
-                'mail': self.mail
+                'email': self.mail
             }
 
         #Output
