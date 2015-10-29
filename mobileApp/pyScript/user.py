@@ -98,8 +98,13 @@ class User:
             self.engName = d("#ctl00_ContentPlaceHolder_MainEdit_Txt_EngName").attr('value')
             self.sex = d("#ctl00_ContentPlaceHolder_MainEdit_Cell_Sex").text()
             self.birth = d("#ctl00_ContentPlaceHolder_MainEdit_Cell_Birth").text()
+            #For python 3
+            """
             self.birth = self.birth.replace(self.birth[0:2], str(int(self.birth[0:2])+ 1911))
             self.birth = dt.strptime(self.birth, u'%Y年%m月%d日').strftime('%Y-%m-%d')
+            """
+            #For python 2
+            self.birth = re.sub(ur'\u65e5', '', re.sub(ur'\u5e74|\u6708', '-', self.birth.replace(self.birth[0:2], str(int(self.birth[0:2])+ 1911))))
             self.cellphone = d("#ctl00_ContentPlaceHolder_MainEdit_Txt_CellPhone").attr('value')
             self.mail = d("#ctl00_ContentPlaceHolder_MainEdit_Txt_OtherMail").attr('value')
 
