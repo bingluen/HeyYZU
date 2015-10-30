@@ -68,6 +68,10 @@ class User:
                 'statusCode': 1002,
                 'message': 'Login Portal Failed'
             }
+            self.message['profile'] = {
+                'portalUsername': self.username,
+                'portalPassword': self.password
+            }
         else:
             self.message['status'] = {
                 'state': 'loginSuccess',
@@ -109,8 +113,8 @@ class User:
             self.mail = d("#ctl00_ContentPlaceHolder_MainEdit_Txt_OtherMail").attr('value')
 
             self.message['profile'] = {
-                'username': self.username,
-                'password': self.password,
+                'portalUsername': self.username,
+                'portalPassword': self.password,
                 'chiName': self.chiName,
                 'engName': self.engName,
                 'gender': self.sex,
