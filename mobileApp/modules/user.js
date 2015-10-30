@@ -2,10 +2,11 @@ var PyScript = require(__MobileAppBase + 'modules/runPython');
 var Logging = require(__SystemBase + 'modules/logging')('mobileAPI');
 var Database = require(__MobileAppBase + 'modules/database');
 var RSA = require(__MobileAppBase + 'modules/rsa');
+var Token = require(__MobileAppBase + 'modules/token');
 
 module.exports.login = function(req, res, next) {
   var privateRSA = RSA('private')
-  /* ==== 測試用 ==== 
+  /* ==== 測試用 ====
   var publicRSA = RSA();
 
   var testdata = {
@@ -42,20 +43,27 @@ module.exports.login = function(req, res, next) {
 
   //Token 產生 function
   var createToken = function() {
-    console.log(userData)
+    var token = Token.createToken(userData)
+    res.status(200).json({
+      state: 'LoginSuccess',
+      messages: 'Login success',
+      statusCode: 200,
+      data: {
+        token: token
+      }
+    })
   }
 
   //註冊確認
   var isRegister = function() {
-    var queryStatment = 'SELECT id, portalUsername, portalPassword, accessToken From user Where portalUsername = ?';
+    var queryStatment = 'SELECT id, portalUsername, lastVerifyTime, birth From user Where portalUsername = ?';
     var params = [];
     params.push(userData.username);
-    params.push(userData.password);
     Database.query(queryStatment, params, function(err, row, field) {
       if (err) {
         Logging.writeMessage('[Response][DatabaseError]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
         res.status(1004).json({
-          state: 'Internal error',
+          state: 'InternalError',
           messages: 'Internal error',
           statusCode: 1004
         })
@@ -72,6 +80,7 @@ module.exports.login = function(req, res, next) {
 
   //進行註冊
   var doRegister = function() {
+    var publicRSA = RSA()
     var queryStatment = 'INSERT INTO user (chiName, engName, portalUsername, portalPassword, cellphone, email, gender, birth) Value (?, ?, ?, ?, ?, ?, ?, ?)';
 
     getProfile(function(r) {
@@ -88,8 +97,8 @@ module.exports.login = function(req, res, next) {
       userData = r.profile;
       params.push(userData.chiName);
       params.push(userData.engName);
-      params.push(userData.username);
-      params.push(userData.password);
+      params.push(userData.portalUsername);
+      params.push(publicRSA.encrypt(userData.portalPassword, 'base64', 'utf-8'));
       params.push(userData.cellphone);
       params.push(userData.email);
       params.push((userData.gender == '\u7537' ? 1 : 0));
@@ -98,12 +107,13 @@ module.exports.login = function(req, res, next) {
         if(err) {
           Logging.writeMessage('[Response][DatabaseError]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
           res.status(1004).json({
-            state: 'Internal error',
+            state: 'InternalError',
             messages: 'Internal error',
             statusCode: 1004
           })
           return;
         } else {
+          userData.id = row.insertId;
           createToken()
         }
       })
@@ -162,7 +172,26 @@ module.exports.login = function(req, res, next) {
 
 module.exports.profile = function(req, res, next) {
   Logging.writeMessage('Access mobileApp/user/profile from ' + req.ips ,'access')
-  getProfile(req.body.username, req.body.password, function(r) {
-    Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
+  Token.verifyToken(req.body.token, function(isValid, userData) {
+    if(!isValid) {
+      Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
+      res.status(1004).json({
+        stateCode: 1004,
+        status: 'TokeInvalid',
+        message: 'TokenInvalid',
+      })
+    } else {
+      res.status(200).json({
+        stateCode: 200,
+        status: 'Success',
+        message: 'get profile successful',
+        data: {
+          chiName: userData.chiName,
+          engName: userData.engName,
+          portalUsername: userData.portalUsername
+        }
+      })
+      Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
+    }
   })
 }
