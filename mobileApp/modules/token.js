@@ -25,7 +25,7 @@ module.exports.verifyToken = function(token, next) {
       next(false)
     } else {
       moment.locale('zh-tw')
-      if(moment() - moment(row.lastVerifyTime) > 172800000)
+      if(moment() - moment(row[0].lastVerifyTime) > 172800000) // 172800000 = two days
       {
         next(false)
         return;
