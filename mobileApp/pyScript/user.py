@@ -7,13 +7,17 @@ from pyquery import PyQuery as pq
 from datetime import datetime as dt
 
 URL_LOGIN = 'https://portalx.yzu.edu.tw/PortalSocialVB/Login.aspx'
+URL_DEFAULT = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/DefaultPage.aspx?Menu=Default&LogExcute=Y'
 URL_PROFILE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/ClickMenuLog.aspx?type=App_&SysCode=P1'
+URL_LEARNING = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/ClickMenuLog.aspx?type=App_&SysCode=S1'
 URL_BASICDATA = 'https://portal.yzu.edu.tw/personal/StudentBasic/BasicData.aspx'
 URL_IFRAMESUB = 'https://portalx.yzu.edu.tw/PortalSocialVB/IFrameSub.aspx'
 URL_PORTAL = 'https://portal.yzu.edu.tw/VC2/Student/StudentVc.aspx'
-URL_PORTAL_LEFT = 'https://portal.yzu.edu.tw/VC2/Student/classLeft_S.aspx'
 URL_NICKNAME = 'https://portal.yzu.edu.tw/VC2/FFB_Login.aspx?sys=Nickname'
+URL_LEARNING_CONTENT = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/PageByDuty.aspx?DutyType=std'
 URL_BOOK50 = 'https://portal.yzu.edu.tw/VC2/Student/Book50/StdGetPoint.aspx'
+URL_SERVICE_MAIN = 'https://portal.yzu.edu.tw/Ser_learn/stdserv_std/ser_std_main_Login.asp'
+URL_SERVICE = 'https://portal.yzu.edu.tw/Ser_learn/stdserv_std/ser_std_recdata.asp'
 
 
 #Status Code:
@@ -47,7 +51,6 @@ class User:
         self.username = username
         self.password = password
         self.session  = requests.Session()
-        self.session.headers.update(portalx_headers)
         self.login()
 
     def login(self):
@@ -78,7 +81,18 @@ class User:
                 'statusCode': 1001,
                 'message': 'Login Portal Success'
             }
+    def verifyAccount(self):
+        stdardOut( json.dumps(self.message) )
+
+    def loginOld(self):
+        #Get old portal sessionID
+        self.session.headers.update(portal_headers)
+        self.session.post(URL_NICKNAME, data=self.sessionData)
+
+    def getMyProfile(self):
+        if(self.message['status']['statusCode'] == 1001):
             #1st request(to Profile Page)
+            self.session.headers.update(portalx_headers)
             self.session.get(URL_PROFILE)
             #2nd request(get SessionID)
             d = pq( self.session.get(URL_IFRAMESUB).text )
@@ -92,25 +106,14 @@ class User:
             self.session.headers.update(portal_headers)
             profile_result = self.session.post(URL_BASICDATA, data=self.sessionData).text
 
-
-    def getMyProfile(self):
-        if(self.message['status']['statusCode'] == 1001):
-
             #Fetch Data
             d = pq( profile_result )
             self.chiName = d("#ctl00_ContentPlaceHolder_MainEdit_Cell_ChiName").text()
             self.engName = d("#ctl00_ContentPlaceHolder_MainEdit_Txt_EngName").attr('value')
             self.sex = d("#ctl00_ContentPlaceHolder_MainEdit_Cell_Sex").text()
-            birth = d("#ctl00_ContentPlaceHolder_MainEdit_Cell_Birth").text()
-            birth = re.split(u'年|月|日', birth)
+            birth = re.split( u'年|月|日',d("#ctl00_ContentPlaceHolder_MainEdit_Cell_Birth").text() )
             birth[0] = str(int(birth[0])+1911)
 
-            #For python 3
-            """
-            self.birth = self.birth.replace(self.birth[0:2], str(int(self.birth[0:2])+ 1911))
-            self.birth = dt.strptime(self.birth, u'%Y年%m月%d日').strftime('%Y-%m-%d')
-            """
-            #For python 2
             self.birth = '-'.join(birth[:3])
             self.cellphone = d("#ctl00_ContentPlaceHolder_MainEdit_Txt_CellPhone").attr('value')
             self.mail = d("#ctl00_ContentPlaceHolder_MainEdit_Txt_OtherMail").attr('value')
@@ -130,21 +133,41 @@ class User:
         stdardOut( json.dumps(self.message) )
 
     def getMyCourse(self):
-        self.session.headers.update(portal_headers)
-        self.session.post(URL_NICKNAME, data=self.sessionData)
+        if(self.message['status']['statusCode'] == 1001):
+            #1st request(to Course Page)
+            self.session.headers.update(portalx_headers)
+            self.session.get(URL_LEARNING)
+            #2nd request(get Courses)
+            d = pq( self.session.get(URL_LEARNING_CONTENT).text )
+            allTableRow = d(".table_1").find("tr").not_(".title_line").items()
+            self.message['course'] = {}
 
-        req = self.session.get(URL_PORTAL_LEFT).text
-        print req
+            for index, tr in enumerate(allTableRow):
+                #print tr.text()
+                content = [i.text() for i in tr.items("td")]
+                time = re.findall('([0-9]+)\(', content[5])
+                location = re.findall('\(([0-9A-Z]+)\)', content[5])
+
+                self.message['course'][index] = {
+                    'year': content[0],
+                    'semester': content[1],
+                    'courseID': content[2],
+                    'class': content[3],
+                    'name': content[4],
+                    'time': ','.join(time),
+                    'location': ','.join(location),
+                }
+        #Output
+        stdardOut( json.dumps(self.message['course']) )
 
     def getMyBook50(self):
-        self.session.headers.update(portal_headers)
-        self.session.post(URL_NICKNAME, data=self.sessionData)
+        self.loginOld()
         d = pq(self.session.get(URL_BOOK50).text)
 
         allTableRow = d(".table_1").find("tr").not_(".title_line").items()
         self.message['book50'] = {}
 
-
+        totalPoints = 0
         for index, tr in enumerate(allTableRow):
             #print tr.text()
             content = [i.text() for i in tr.items("td")]
@@ -155,31 +178,76 @@ class User:
                 'teacher': content[2],
                 'book': content[3],
                 'type': content[4],
-                'point': content[5],
+                'points': content[5],
                 'notes': content[6]
             }
+            totalPoints += int(content[5])
+
+        self.message['book50']['totalPoints'] = totalPoints
+        #Output
         stdardOut( json.dumps(self.message['book50']) )
+
+    def getMyService(self):
+        self.loginOld()
+        self.session.get(URL_SERVICE_MAIN + '?uid=' + self.username + '&sidNET=' + self.sessionID)
+        #convert big5 to utf8
+        d = pq( self.session.get(URL_SERVICE).text.encode('latin1', 'ignore').decode('big5') )
+
+        teach, activity = map(int, re.findall('[0-9]+', d("font").eq(10).text()) )
+        self.message['service'] = {
+            'teach' : teach,
+            'activity' : activity
+        }
+        #Output
+        stdardOut( json.dumps(self.message['service']) )
+
+    def getMyToDo(self):
+        if(self.message['status']['statusCode'] == 1001):
+            #1st request(to Default Page)
+            self.session.headers.update(portalx_headers)
+            d = pq( self.session.get(URL_DEFAULT).text )
+            #Fetch Data
+            allToDo = d("#divTasks").find("a").items()
+
+            ToDoList = []
+            for index, todo in enumerate(allToDo):
+                lastDays = re.findall('[0-9]+', todo.next().text())[0]
+                type = re.findall(u'【(.*)】', todo.text())[0]
+                course = re.findall('\[(.*)\]', todo.text())[0]
+                task = re.findall('\](.+)', todo.text())[0]
+                ToDoList.append((lastDays, type, course, task))
+
+            #Order by lastDays
+            ToDoList = sorted(ToDoList, key=lambda x:int(x[0]))
+
+            self.message['todo'] = {}
+            for index, todo in enumerate(ToDoList):
+                self.message['todo'][index]={
+                    'lastDays':todo[0],
+                    'type':todo[1],
+                    'course':todo[2],
+                    'task':todo[3]
+                }
+        #Output
+        stdardOut( json.dumps(self.message['todo']) )
+
 
 argv = sys.argv
 
 if len(argv) == 4:
     try:
-
         method = argv[1]
         user = User(argv[2], argv[3])
-
-        if(method == 'getProfile'):
-            user.getMyProfile()
-        elif(method == 'login'):
-            stdardOut( json.dumps(user.message) )
-        elif(method == 'getCourse'):
-            user.getMyCourse()
-        elif(method == 'getBook50'):
-            user.getMyBook50()
+        if(method == 'login'): user.verifyAccount()
+        elif(method == 'getProfile'):   user.getMyProfile()
+        elif(method == 'getCourse'):  user.getMyCourse()
+        elif(method == 'getBook50'):  user.getMyBook50()
+        elif(method == 'getService'): user.getMyService()
+        elif(method == 'getToDo'):    user.getMyToDo()
         else:
             raise Exception('No such method : ' + method)
-    except Exception as e:
-        print ('error:', e)
+    except Exception,e:
+        print 'error:', e
 
 else:
     print('No action specified.')
