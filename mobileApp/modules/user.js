@@ -172,6 +172,17 @@ module.exports.login = function(req, res, next) {
 
 module.exports.profile = function(req, res, next) {
   Logging.writeMessage('Access mobileApp/user/profile from ' + req.ips ,'access')
+
+if(!req.body.token) {
+  Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
+  res.status(1004).json({
+    stateCode: 1004,
+    status: 'ParamInvalid',
+    message: 'Param Invalid',
+  })
+  return;
+}
+
   Token.verifyToken(req.body.token, function(isValid, userData) {
     if(!isValid) {
       Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
