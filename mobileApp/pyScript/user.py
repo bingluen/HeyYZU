@@ -140,7 +140,7 @@ class User:
             #2nd request(get Courses)
             d = pq( self.session.get(URL_LEARNING_CONTENT).text )
             allTableRow = d(".table_1").find("tr").not_(".title_line").items()
-            self.message['course'] = {}
+            self.message['course'] = []
 
             for index, tr in enumerate(allTableRow):
                 #print tr.text()
@@ -148,15 +148,15 @@ class User:
                 time = re.findall('([0-9]+)\(', content[5])
                 location = re.findall('\(([0-9A-Z]+)\)', content[5])
 
-                self.message['course'][index] = {
-                    'year': content[0],
-                    'semester': content[1],
+                self.message['course'].append({
+                    'year': int(content[0]),
+                    'semester': int(content[1]),
                     'courseID': content[2],
                     'class': content[3],
-                    'name': content[4],
-                    'time': ','.join(time),
-                    'location': ','.join(location),
-                }
+                    #'name': content[4],
+                    #'time': ','.join(time),
+                    #'location': ','.join(location),
+                })
         #Output
         stdardOut( json.dumps(self.message['course']) )
 
