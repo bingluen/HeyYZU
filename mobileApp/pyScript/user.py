@@ -151,7 +151,7 @@ class User:
                 self.message['course'].append({
                     'year': int(content[0]),
                     'semester': int(content[1]),
-                    'courseID': content[2],
+                    'code': content[2],
                     'class': content[3],
                     #'name': content[4],
                     #'time': ','.join(time),
