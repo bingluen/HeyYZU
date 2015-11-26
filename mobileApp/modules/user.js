@@ -3,9 +3,50 @@ var Logging = require(__SystemBase + 'modules/logging')('mobileAPI');
 var Database = require(__MobileAppBase + 'modules/database');
 var RSA = require(__MobileAppBase + 'modules/rsa');
 var Token = require(__MobileAppBase + 'modules/token');
+var privateRSA = RSA('private');
+var publicRSA = RSA();
+
+var getYearNow = function()
+{
+  var nowTime = new Date(Date.now());
+  var year = nowTime.getYear() - 11;
+  if(year <= 7) return year - 1;
+  else return year;
+}
+
+var getSemesterNow = function()
+{
+  var nowTime = new Date(Date.now());
+  var month = nowTime.getMonth();
+
+  if(month <= 7 && month >= 2) return 2;
+  else return 1;
+}
+
+var lessonToTime = function(lesson)
+{
+  lesson %= 100;
+  switch(lesson) {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+      return lesson + 7;
+    case 11:
+    case 12:
+    case 13:
+      return lesson + 7.5;
+
+  }
+}
 
 module.exports.login = function(req, res, next) {
-  var privateRSA = RSA('private')
   /* ==== 測試用 ====
   var publicRSA = RSA();
 
@@ -80,7 +121,6 @@ module.exports.login = function(req, res, next) {
 
   //進行註冊
   var doRegister = function() {
-    var publicRSA = RSA()
     var queryStatment = 'INSERT INTO user (chiName, engName, portalUsername, portalPassword, cellphone, email, gender, birth) Value (?, ?, ?, ?, ?, ?, ?, ?)';
 
     getProfile(function(r) {
@@ -173,15 +213,15 @@ module.exports.login = function(req, res, next) {
 module.exports.profile = function(req, res, next) {
   Logging.writeMessage('Access mobileApp/user/profile from ' + req.ips ,'access')
 
-if(!req.body.token) {
-  Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
-  res.status(1004).json({
-    stateCode: 1004,
-    status: 'ParamInvalid',
-    message: 'Param Invalid',
-  })
-  return;
-}
+  if(!req.body.token) {
+    Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
+    res.status(1004).json({
+      stateCode: 1004,
+      status: 'ParamInvalid',
+      message: 'Param Invalid',
+    })
+    return;
+  }
 
   Token.verifyToken(req.body.token, function(isValid, userData) {
     if(!isValid) {
@@ -205,4 +245,104 @@ if(!req.body.token) {
       Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
     }
   })
+}
+
+module.exports.courses = function(req, res , next) {
+  if(!req.body.token) {
+    Logging.writeMessage('response to (mobileApp/user/courses) ' + req.ips ,'access')
+    res.status(1004).json({
+      stateCode: 1004,
+      status: 'ParamInvalid',
+      message: 'Param Invalid',
+    })
+    return;
+  }
+
+  // verifyToken
+  Token.verifyToken(req.body.token, function(isValid, userData) {
+    if(!isValid) {
+      Logging.writeMessage('response to (mobileApp/user/courses) ' + req.ips ,'access')
+      res.status(1004).json({
+        stateCode: 1004,
+        status: 'TokeInvalid',
+        message: 'TokenInvalid',
+      })
+    } else {
+      getCourses(userData);
+    }
+  })
+
+  // get courses
+  var getCourses = function(userData) {
+    PyScript({
+      args: ['getCourse', userData.portalUsername, privateRSA.decrypt(userData.portalPassword, 'utf-8')],
+      scriptFile: 'user.py'
+    }, function(r) {
+      savingCourses(r, userData);
+    })
+  }
+  // Saving course
+  var savingCourses = function(courses, userData) {
+
+    var queryStatment = "";
+
+    //crate temporary table
+    queryStatment += "Create temporary table userCourseTemp ("
+    +  "temp_id int(10) auto_increment,"
+    +  "code varchar(10),"
+    +  "semester int(2),"
+    +  "class varchar(5),"
+    +  "year int(4),"
+    +  "primary key(temp_id)"
+    + ");";
+    // Insert user data
+    for(i = 0; i < courses.length; i++)
+      queryStatment += "INSERT INTO userCourseTemp SET ?;"
+
+    queryStatment += "INSERT INTO userCourse (user_id, course_unique_id) "
+
+    //Inner Join to get course_id
+    queryStatment += "Select " + Database.escape(userData.id) + " as user_id, rtc.unique_id as course_unique_id from "
+    queryStatment += "(SELECT courses.course_id, userCourseTemp.semester, userCourseTemp.class, userCourseTemp.year FROM (userCourseTemp INNER JOIN courses ON userCourseTemp.code = courses.code)) as uc "
+    queryStatment += "INNER JOIN relation_teacher_course AS rtc "
+    queryStatment += "ON (uc.course_id = rtc.course_id and uc.year = rtc.year and uc.semester = rtc.semester and uc.class = rtc.class) "
+
+    //drop course which has been exists in database
+    queryStatment += "Where not exists (SELECT * FROM UserCourse Where user_id = "+ Database.escape(userData.id) +" and course_unique_id = rtc.unique_id);"
+
+    queryStatment += "SELECT relation_teacher_course.unique_id, courses.cname, relation_teacher_course.classroom FROM "
+    queryStatment += "courses INNER JOIN relation_teacher_course ON courses.course_id = relation_teacher_course.course_id "
+    queryStatment += "Where (relation_teacher_course.unique_id in (SELECT course_unique_id FROM UserCourse Where user_id = "+ userData.id +") and relation_teacher_course.year = "+ Database.escape(getYearNow()) +" and relation_teacher_course.semester = "+ Database.escape(getSemesterNow()) +");"
+
+    query = Database.query(queryStatment, courses, function(err, result, field) {
+      if(!err) {
+        var resData = [];
+
+        for(i = 0; i < result[result.length - 1].length; i++)
+        {
+          classroom = JSON.parse(result[result.length - 1][i].classroom.replace(/\'/g, "\""))
+
+          for(j in classroom)
+          {
+            var row = {
+              classid: result[result.length - 1][i].unique_id,
+              name: result[result.length - 1][i].cname,
+              start_time: lessonToTime(j),
+              end_time: (lessonToTime(j)+1),
+              location: classroom[j]
+            }
+            resData.push(row)
+          }
+        }
+
+        res.status(200).json(resData);
+
+      } else {
+        console.log(err);
+      }
+    })
+    /* debug
+    console.log(query.sql);
+    /* debug */
+  }
 }
