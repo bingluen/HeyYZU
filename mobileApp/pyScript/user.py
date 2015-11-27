@@ -18,6 +18,8 @@ URL_LEARNING_CONTENT = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/PageByDu
 URL_BOOK50 = 'https://portal.yzu.edu.tw/VC2/Student/Book50/StdGetPoint.aspx'
 URL_SERVICE_MAIN = 'https://portal.yzu.edu.tw/Ser_learn/stdserv_std/ser_std_main_Login.asp'
 URL_SERVICE = 'https://portal.yzu.edu.tw/Ser_learn/stdserv_std/ser_std_recdata.asp'
+URL_FIRST_PAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FPage/FirstToPage.aspx?'
+URL_HOMEWORK = 'https://portalx.yzu.edu.tw/PortalSocialVB/THom/HomeworkList.aspx?Menu=Hom'
 
 
 #Status Code:
@@ -201,6 +203,28 @@ class User:
         #Output
         stdardOut( json.dumps(self.message['service']) )
 
+    def getHomework(self, url, task):
+        self.session.get(url)
+        d = pq(self.session.get(URL_HOMEWORK).text)
+        allTableRow = d(".table_1").find("tr").not_(".title_line").items()
+
+        # Fetch Homework description
+        isMatch = False
+        fileLink = None
+        fileName = None
+        for index, tr in enumerate(allTableRow):
+            if index % 3 == 0:
+                content = tr.find("td").eq(2).text()
+                fileLink = tr.find("td").eq(3).html()
+                isMatch = (content == task)
+                if fileLink != None:
+                    fileName = re.findall('File Name = (.*)', tr.find("td").eq(3).find("a").attr['title'])[0]
+                    fileLink = tr.find("td").eq(3).find("a").attr['href']
+
+            elif index % 3 == 1 and isMatch:
+                content = [i.text() for i in tr.items("td")]
+                return content[0], fileName, fileLink
+
     def getMyToDo(self):
         if(self.message['status']['statusCode'] == 1001):
             #1st request(to Default Page)
@@ -214,22 +238,29 @@ class User:
                 lastDays = re.findall('[0-9]+', todo.next().text())[0]
                 type = re.findall(u'【(.*)】', todo.text())[0]
                 course = re.findall('\[(.*)\]', todo.text())[0]
-                task = re.findall('\](.+)', todo.text())[0]
-                ToDoList.append((lastDays, type, course, task))
+                task = re.findall('\](.+)', todo.text())[0][1:]
+                url = URL_FIRST_PAGE + re.findall('\?(.*)',todo.attr['href'])[0]
+                description, fileName, fileLink = self.getHomework(url, task)
+
+                ToDoList.append((lastDays, description, type, course, task, fileName, fileLink))
 
             #Order by lastDays
             ToDoList = sorted(ToDoList, key=lambda x:int(x[0]))
 
-            self.message['todo'] = {}
+            self.message['todo'] = []
             for index, todo in enumerate(ToDoList):
-                self.message['todo'][index]={
+                self.message['todo'].append({
                     'lastDays':todo[0],
-                    'type':todo[1],
-                    'course':todo[2],
-                    'task':todo[3]
-                }
+                    'description':todo[1],
+                    'type':todo[2],
+                    'course':todo[3],
+                    'task':todo[4],
+                    'fileName':todo[5],
+                    'fileLink':todo[6]
+                })
         #Output
         stdardOut( json.dumps(self.message['todo']) )
+
 
 
 argv = sys.argv
