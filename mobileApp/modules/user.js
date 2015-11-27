@@ -310,6 +310,16 @@ module.exports.courses = function(req, res , next) {
     //drop course which has been exists in database
     queryStatment += "Where not exists (SELECT * FROM UserCourse Where user_id = "+ Database.escape(userData.id) +" and course_unique_id = rtc.unique_id);"
 
+    //drop course which not exist in portal
+    queryStatment += "DELETE FROM userCourse Where user_id = " + Database.escape(userData.id) + " and "
+    queryStatment += "course_unique_id not in "
+    queryStatment += "SELECT course_unique_id from "
+    queryStatment += "(SELECT courses.course_id, userCourseTemp.semester, userCourseTemp.class, userCourseTemp.year FROM (userCourseTemp INNER JOIN courses ON userCourseTemp.code = courses.code)) as uc "
+    queryStatment += "INNER JOIN relation_teacher_course AS rtc "
+    queryStatment += "ON (uc.course_id = rtc.course_id and uc.year = rtc.year and uc.semester = rtc.semester and uc.class = rtc.class) ;"
+
+    queryStatment += "Drop Table userCourseTemp;"
+
     queryStatment += "SELECT relation_teacher_course.unique_id, courses.cname, relation_teacher_course.classroom FROM "
     queryStatment += "courses INNER JOIN relation_teacher_course ON courses.course_id = relation_teacher_course.course_id "
     queryStatment += "Where (relation_teacher_course.unique_id in (SELECT course_unique_id FROM UserCourse Where user_id = "+ userData.id +") and relation_teacher_course.year = "+ Database.escape(getYearNow()) +" and relation_teacher_course.semester = "+ Database.escape(getSemesterNow()) +");"
@@ -344,5 +354,41 @@ module.exports.courses = function(req, res , next) {
     /* debug
     console.log(query.sql);
     /* debug */
+  }
+}
+
+module.exports.homework = function(req, res, next) {
+  if(!req.body.token) {
+    Logging.writeMessage('response to (mobileApp/user/courses) ' + req.ips ,'access')
+    res.status(1004).json({
+      stateCode: 1004,
+      status: 'ParamInvalid',
+      message: 'Param Invalid',
+    })
+    return;
+  }
+
+  // verifyToken
+  Token.verifyToken(req.body.token, function(isValid, userData) {
+    if(!isValid) {
+      Logging.writeMessage('response to (mobileApp/user/courses) ' + req.ips ,'access')
+      res.status(1004).json({
+        stateCode: 1004,
+        status: 'TokeInvalid',
+        message: 'TokenInvalid',
+      })
+    } else {
+      getToDo(userData);
+    }
+  })
+
+  // get courses
+  var getCourses = function(userData) {
+    PyScript({
+      args: ['getCourse', userData.portalUsername, privateRSA.decrypt(userData.portalPassword, 'utf-8')],
+      scriptFile: 'user.py'
+    }, function(r) {
+      //savingCourses(r, userData);
+    })
   }
 }
