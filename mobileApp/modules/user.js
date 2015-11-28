@@ -356,3 +356,45 @@ module.exports.courses = function(req, res , next) {
     /* debug */
   }
 }
+
+module.exports.homework = function(req, res, next) {
+  if(!req.body.token) {
+    Logging.writeMessage('response to (mobileApp/user/homework) ' + req.ips ,'access')
+    res.status(1004).json({
+      stateCode: 1004,
+      status: 'ParamInvalid',
+      message: 'Param Invalid',
+    })
+    return;
+  }
+
+  // verifyToken
+  Token.verifyToken(req.body.token, function(isValid, userData) {
+    if(!isValid) {
+      Logging.writeMessage('response to (mobileApp/user/homework) ' + req.ips ,'access')
+      res.status(1004).json({
+        stateCode: 1004,
+        status: 'TokeInvalid',
+        message: 'TokenInvalid',
+      })
+    } else {
+      getHomework(userData);
+    }
+  })
+
+  // get ToDo
+  var getHomework = function(userData) {
+    PyScript({
+      args: [userData.portalUsername, privateRSA.decrypt(userData.portalPassword, 'utf-8'), getYearNow(), getSemesterNow()],
+      scriptFile: 'homework.py'
+    }, function(r) {
+      processingHomework(r, userData);
+    })
+  }
+
+  var processingHomework = function(hw, user)
+  {
+    console.log(hw)
+    res.status(200).json(hw);
+  }
+}
