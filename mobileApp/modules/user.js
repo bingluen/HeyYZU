@@ -5,6 +5,7 @@ var RSA = require(__MobileAppBase + 'modules/rsa');
 var Token = require(__MobileAppBase + 'modules/token');
 var privateRSA = RSA('private');
 var publicRSA = RSA();
+var ursa = require('ursa');
 
 var getYearNow = function()
 {
@@ -55,13 +56,13 @@ module.exports.login = function(req, res, next) {
     password: ''
   }
 
-  var encryptPrivate = privateRSA.encryptPrivate(JSON.stringify(testdata), 'base64', 'utf-8');
-  var encryptPublic = publicRSA.encrypt(JSON.stringify(testdata),'base64', 'utf-8');
+
+  var encryptPublic = publicRSA.encrypt(JSON.stringify(testdata),'utf8', 'base64', ursa.RSA_PKCS1_PADDING);
 
   console.log('========密文是=========')
   console.log(encryptPublic);
   console.log('========解密後=========')
-  console.log(privateRSA.decrypt(encryptPublic, 'utf-8'))
+  console.log(privateRSA.decrypt(encryptPublic, 'base64', 'utf8', ursa.RSA_PKCS1_PADDING))
   /* ===== 測試用END ==== */
 
   var userData = {}
@@ -138,7 +139,7 @@ module.exports.login = function(req, res, next) {
       params.push(userData.chiName);
       params.push(userData.engName);
       params.push(userData.portalUsername);
-      params.push(publicRSA.encrypt(userData.portalPassword, 'base64', 'utf-8'));
+      params.push(publicRSA.encrypt(userData.portalPassword, 'utf8' , 'base64'));
       params.push(userData.cellphone);
       params.push(userData.email);
       params.push((userData.gender == '\u7537' ? 1 : 0));
@@ -192,7 +193,7 @@ module.exports.login = function(req, res, next) {
   }
 
   //解碼後解析為JSON
-  var params = JSON.parse(privateRSA.decrypt(req.body.messages));
+  var params = JSON.parse(privateRSA.decrypt(req.body.messages, 'base64', 'utf8', ursa.RSA_PKCS1_PADDING));
 
   //檢查帳號密碼是否存在
   if(!params.username || !params.username.match(/^s(9[0-9]|1[0-9]{2})[0-9]{4}$/g) || !params.password) {
@@ -275,7 +276,7 @@ module.exports.courses = function(req, res , next) {
   // get courses
   var getCourses = function(userData) {
     PyScript({
-      args: ['getCourse', userData.portalUsername, privateRSA.decrypt(userData.portalPassword, 'utf-8')],
+      args: ['getCourse', userData.portalUsername, privateRSA.decrypt(userData.portalPassword, 'base64', 'utf8')],
       scriptFile: 'user.py'
     }, function(r) {
       savingCourses(r, userData);
@@ -382,10 +383,10 @@ module.exports.homework = function(req, res, next) {
     }
   })
 
-  // get ToDo
+  // get homework
   var getHomework = function(userData) {
     PyScript({
-      args: [userData.portalUsername, privateRSA.decrypt(userData.portalPassword, 'utf-8'), getYearNow(), getSemesterNow()],
+      args: [userData.portalUsername, privateRSA.decrypt(userData.portalPassword, 'base64', 'utf8'), getYearNow(), getSemesterNow()],
       scriptFile: 'homework.py'
     }, function(r) {
       processingHomework(r, userData);
