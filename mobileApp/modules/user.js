@@ -331,18 +331,22 @@ module.exports.courses = function(req, res , next) {
 
         for(i = 0; i < result[result.length - 1].length; i++)
         {
-          classroom = JSON.parse(result[result.length - 1][i].classroom.replace(/\'/g, "\""))
 
-          for(j in classroom)
-          {
-            var row = {
-              classid: result[result.length - 1][i].unique_id,
-              name: result[result.length - 1][i].cname,
-              start_time: lessonToTime(j),
-              end_time: (lessonToTime(j)+1),
-              location: classroom[j]
+          try {
+            classroom = JSON.parse(result[result.length - 1][i].classroom.replace(/\'/g, "\""))
+
+            for(j in classroom)
+            {
+              var row = {
+                classid: result[result.length - 1][i].unique_id,
+                name: result[result.length - 1][i].cname,
+                start_time: lessonToTime(j),
+                end_time: (lessonToTime(j)+1),
+                location: classroom[j]
+              }
+              resData.push(row)
             }
-            resData.push(row)
+          } catch (err) {
           }
         }
 
@@ -386,7 +390,7 @@ module.exports.homework = function(req, res, next) {
   // get homework
   var getHomework = function(userData) {
     PyScript({
-      args: [userData.portalUsername, privateRSA.decrypt(userData.portalPassword, 'base64', 'utf8'), getYearNow(), getSemesterNow()],
+      args: ['doing', userData.portalUsername, privateRSA.decrypt(userData.portalPassword, 'base64', 'utf8'), getYearNow(), getSemesterNow()],
       scriptFile: 'homework.py'
     }, function(r) {
       processingHomework(r, userData);
