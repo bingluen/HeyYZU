@@ -47,6 +47,11 @@ var lessonToTime = function(lesson)
   }
 }
 
+var lessonToDay = function(lesson)
+{
+  return lesson/100;
+}
+
 module.exports.login = function(req, res, next) {
   /* ==== 測試用 ====
   var publicRSA = RSA();
@@ -340,6 +345,7 @@ module.exports.courses = function(req, res , next) {
               var row = {
                 classid: result[result.length - 1][i].unique_id,
                 name: result[result.length - 1][i].cname,
+                day: lessonToDay(j),
                 start_time: lessonToTime(j),
                 end_time: (lessonToTime(j)+1),
                 location: classroom[j]
