@@ -49,7 +49,7 @@ var lessonToTime = function(lesson)
 
 var lessonToDay = function(lesson)
 {
-  return lesson/100;
+  return Math.round(lesson/100);
 }
 
 module.exports.login = function(req, res, next) {
