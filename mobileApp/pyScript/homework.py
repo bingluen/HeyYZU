@@ -73,7 +73,7 @@ class catchHomework:
             courseDetail['pageID'] = re.findall('PageID=([0-9]+)', row[4].a['href'], re.S)[0]
             self.courseList.append(courseDetail.copy())
 
-    def getHomework(self, pageID, year, semester, code, _class):
+    def getHomework(self, pageID):
         ###connect FirstToPage (because set cookie)
         r.get(URL_FIRST_TO_PAGE+pageID)
         content = BeautifulSoup(r.get(URL_HOMEWORK_PAGE).text, 'lxml').find('table', id='Table1').find_all('tr')
@@ -122,10 +122,6 @@ class catchHomework:
             if(isFinishGetRecord):
                 isFinishGetRecord = False
                 ### first row of a record
-                homeworkItem['year'] = year
-                homeworkItem['semester'] = semester
-                homeworkItem['code'] = code
-                homeworkItem['class'] = _class
                 homeworkItem['schedule'] = tds[1].text
                 homeworkItem['title'] = tds[2].text
                 homeworkItem['attach'] = self.parseAttach(tds[3])
@@ -175,7 +171,7 @@ class catchHomework:
         self.getCourseHistory()
         for course in self.courseList:
             if int(course['year']) == year and int(course['semester']) == semester:
-                resultList = resultList + self.getHomework(course['pageID'], course['year'], course['semester'], course['code'], course['class'])
+                resultList = resultList + self.getHomework(course['pageID'])
         print (json.dumps(resultList))
 
 
@@ -184,10 +180,24 @@ start_time = time.time()
 
 argv = sys.argv
 
-if len(argv) == 5:
+if len(argv) >= 4:
     try:
-        crawler = catchHomework(argv[1], argv[2])
-        crawler.doing(int(argv[3]), int(argv[4]))
+        crawler = catchHomework(argv[2], argv[3])
+        if(argv[1] == 'getCourseHistory'):
+            crawler.getCourseHistory()
+            print(json.dumps(crawler.courseList))
+
+
+        #if(argv[1] == 'getCourseGrade'):
+
+        if(argv[1] == 'getHomework'):
+            resultList = []
+            for i in range(4, len(argv)):
+                resultList = resultList + crawler.getHomework(argv[i])
+            print(json.dumps(resultList))
+
+        if(argv[1] == 'doing'):
+            crawler.doing(int(argv[4]), int(argv[5]))
     except Exception,e:
         print 'error:', e
 
@@ -195,4 +205,4 @@ else:
     print('No action specified.')
     sys.exit()
 
-print("--- %s seconds ---" % (time.time() - start_time))
+#print("--- %s seconds ---" % (time.time() - start_time))

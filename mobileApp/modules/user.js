@@ -3,73 +3,13 @@ var Logging = require(__SystemBase + 'modules/logging')('mobileAPI');
 var Database = require(__MobileAppBase + 'modules/database');
 var RSA = require(__MobileAppBase + 'modules/rsa');
 var Token = require(__MobileAppBase + 'modules/token');
+var Course = require(__MobileAppBase + 'modules/course')
 var privateRSA = RSA('private');
 var publicRSA = RSA();
 var ursa = require('ursa');
-
-var getYearNow = function()
-{
-  var nowTime = new Date(Date.now());
-  var year = nowTime.getYear() - 11;
-  if(year <= 7) return year - 1;
-  else return year;
-}
-
-var getSemesterNow = function()
-{
-  var nowTime = new Date(Date.now());
-  var month = nowTime.getMonth();
-
-  if(month <= 7 && month >= 2) return 2;
-  else return 1;
-}
-
-var lessonToTime = function(lesson)
-{
-  lesson %= 100;
-  switch(lesson) {
-    case 1:
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-    case 8:
-    case 9:
-    case 10:
-      return lesson + 7;
-    case 11:
-    case 12:
-    case 13:
-      return lesson + 7.5;
-
-  }
-}
-
-var lessonToDay = function(lesson)
-{
-  return Math.round(lesson/100);
-}
+var moment = require('moment');
 
 module.exports.login = function(req, res, next) {
-  /* ==== 測試用 ====
-  var publicRSA = RSA();
-
-  var testdata = {
-    username: '',
-    password: ''
-  }
-
-
-  var encryptPublic = publicRSA.encrypt(JSON.stringify(testdata),'utf8', 'base64', ursa.RSA_PKCS1_PADDING);
-
-  console.log('========密文是=========')
-  console.log(encryptPublic);
-  console.log('========解密後=========')
-  console.log(privateRSA.decrypt(encryptPublic, 'base64', 'utf8', ursa.RSA_PKCS1_PADDING))
-  /* ===== 測試用END ==== */
-
   var userData = {}
 
   //portal帳號密碼檢驗器
@@ -160,7 +100,25 @@ module.exports.login = function(req, res, next) {
           return;
         } else {
           userData.id = row.insertId;
-          createToken()
+          Course.getCourseHistory({
+            portalUsername: userData.portalUsername,
+            portalPassword: userData.portalPassword,
+            id: row.insertId
+          }, function(r) {
+            if(r)
+            {
+              createToken()
+            }
+            else
+            {
+              res.status(1004).json({
+                state: 'InternalError',
+                messages: 'Internal error',
+                statusCode: 1004
+              })
+            }
+          })
+
         }
       })
     })
@@ -278,94 +236,12 @@ module.exports.courses = function(req, res , next) {
     }
   })
 
-  // get courses
   var getCourses = function(userData) {
-    PyScript({
-      args: ['getCourse', userData.portalUsername, privateRSA.decrypt(userData.portalPassword, 'base64', 'utf8')],
-      scriptFile: 'user.py'
-    }, function(r) {
-      savingCourses(r, userData);
+    Course.getCurrentCourse({id: userData.id}, function(r) {
+      res.status(200).json(r)
     })
   }
-  // Saving course
-  var savingCourses = function(courses, userData) {
 
-    var queryStatment = "";
-
-    //crate temporary table
-    queryStatment += "Create temporary table userCourseTemp ("
-    +  "temp_id int(10) auto_increment,"
-    +  "code varchar(10),"
-    +  "semester int(2),"
-    +  "class varchar(5),"
-    +  "year int(4),"
-    +  "primary key(temp_id)"
-    + ");";
-    // Insert user data
-    for(i = 0; i < courses.length; i++)
-      queryStatment += "INSERT INTO userCourseTemp SET ?;"
-
-    queryStatment += "INSERT INTO userCourse (user_id, course_unique_id) "
-
-    //Inner Join to get course_id
-    queryStatment += "Select " + Database.escape(userData.id) + " as user_id, rtc.unique_id as course_unique_id from "
-    queryStatment += "(SELECT courses.course_id, userCourseTemp.semester, userCourseTemp.class, userCourseTemp.year FROM (userCourseTemp INNER JOIN courses ON userCourseTemp.code = courses.code)) as uc "
-    queryStatment += "INNER JOIN relation_teacher_course AS rtc "
-    queryStatment += "ON (uc.course_id = rtc.course_id and uc.year = rtc.year and uc.semester = rtc.semester and uc.class = rtc.class) "
-
-    //drop course which has been exists in database
-    queryStatment += "Where not exists (SELECT * FROM userCourse Where user_id = "+ Database.escape(userData.id) +" and course_unique_id = rtc.unique_id);"
-
-    //drop course which not exist in portal
-    queryStatment += "DELETE FROM userCourse Where user_id = " + Database.escape(userData.id) + " and "
-    queryStatment += "course_unique_id not in "
-    queryStatment += "(SELECT course_unique_id from "
-    queryStatment += "(SELECT courses.course_id, userCourseTemp.semester, userCourseTemp.class, userCourseTemp.year FROM (userCourseTemp INNER JOIN courses ON userCourseTemp.code = courses.code)) as uc "
-    queryStatment += "INNER JOIN relation_teacher_course AS rtc "
-    queryStatment += "ON (uc.course_id = rtc.course_id and uc.year = rtc.year and uc.semester = rtc.semester and uc.class = rtc.class) );"
-
-    queryStatment += "Drop Table userCourseTemp;"
-
-    queryStatment += "SELECT relation_teacher_course.unique_id, courses.cname, relation_teacher_course.classroom FROM "
-    queryStatment += "courses INNER JOIN relation_teacher_course ON courses.course_id = relation_teacher_course.course_id "
-    queryStatment += "Where (relation_teacher_course.unique_id in (SELECT course_unique_id FROM userCourse Where user_id = "+ userData.id +") and relation_teacher_course.year = "+ Database.escape(getYearNow()) +" and relation_teacher_course.semester = "+ Database.escape(getSemesterNow()) +");"
-
-    query = Database.query(queryStatment, courses, function(err, result, field) {
-      if(!err) {
-        var resData = [];
-
-        for(i = 0; i < result[result.length - 1].length; i++)
-        {
-
-          try {
-            classroom = JSON.parse(result[result.length - 1][i].classroom.replace(/\'/g, "\""))
-
-            for(j in classroom)
-            {
-              var row = {
-                classid: result[result.length - 1][i].unique_id,
-                name: result[result.length - 1][i].cname,
-                day: lessonToDay(j),
-                start_time: lessonToTime(j),
-                end_time: (lessonToTime(j)+1),
-                location: classroom[j]
-              }
-              resData.push(row)
-            }
-          } catch (err) {
-          }
-        }
-
-        res.status(200).json(resData);
-
-      } else {
-        console.log(err);
-      }
-    })
-    /* debug
-    console.log(query.sql);
-    /* debug */
-  }
 }
 
 module.exports.homework = function(req, res, next) {
@@ -395,17 +271,12 @@ module.exports.homework = function(req, res, next) {
 
   // get homework
   var getHomework = function(userData) {
-    PyScript({
-      args: ['doing', userData.portalUsername, privateRSA.decrypt(userData.portalPassword, 'base64', 'utf8'), getYearNow(), getSemesterNow()],
-      scriptFile: 'homework.py'
-    }, function(r) {
-      processingHomework(r, userData);
-    })
+    Course.getHomework({id: userData.id, portalUsername: userData.portalUsername, portalPassword: privateRSA.decrypt(userData.portalPassword, 'base64', 'utf8')}, processingHomework)
   }
 
-  var processingHomework = function(hw, user)
+  var processingHomework = function(hw)
   {
-    console.log(hw)
+    hw = hw.filter(function(cv) { return cv.uploadFile == null && (moment(new Date(cv.deadline)) - moment() > 0) })
     res.status(200).json(hw);
   }
 }
