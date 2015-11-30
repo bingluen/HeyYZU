@@ -171,7 +171,7 @@ module.exports.getHomework = function(userData, next) {
     var queryStatment = "";
     queryStatment += "SELECT pageId "
     queryStatment += "FROM "
-    queryStatment += "usercourse INNER JOIN relation_teacher_course "
+    queryStatment += "userCourse INNER JOIN relation_teacher_course "
     queryStatment += "ON "
     queryStatment += "course_unique_id = relation_teacher_course.unique_id "
     queryStatment += "WHERE user_id = ? and year = ? and semester = ?;"
