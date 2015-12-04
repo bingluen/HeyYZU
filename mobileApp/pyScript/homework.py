@@ -138,7 +138,6 @@ class catchHomework:
 
             ### mark row number is first row of a record or not
             if(isFinishGetRecord):
-                print (tds[6]['wk_id'])
                 isFinishGetRecord = False
                 ### first row of a record
                 homeworkItem['pageId'] = pageID
@@ -147,6 +146,10 @@ class catchHomework:
                 homeworkItem['attach'] = self.parseAttach(tds[3])
                 homeworkItem['deadline'] = tds[4].text
                 homeworkItem['uploadFile'] = self.parseUploadFile(tds[5])
+                try:
+                    homeworkItem['wk_id'] = tds[6].span['wk_id']
+                except:
+                    homeworkItem['wk_id'] = None
                 homeworkItem['isGroup'] = False if tds[7].text == u'個人' else True
                 homeworkItem['freeSubmit'] = False if tds[8].text == 'N' else True
                 homeworkItem['grade'] = tds[9].text
