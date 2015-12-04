@@ -83,7 +83,7 @@ module.exports.getCourseHistory = function(userData, next) {
     for(i = 0; i < courses.length; i++)
       queryStatment += "INSERT INTO userCourseTemp SET ?;"
 
-    queryStatment += "INSERT INTO userCourse (user_id, course_unique_id, pageId) "
+    queryStatment += "INSERT INTO usercourse (user_id, course_unique_id, pageId) "
 
     //Inner Join to get course_id
     queryStatment += "Select " + Database.escape(userData.id) + " as user_id, rtc.unique_id as course_unique_id, uc.pageId as pageId from "
@@ -92,10 +92,10 @@ module.exports.getCourseHistory = function(userData, next) {
     queryStatment += "ON (uc.course_id = rtc.course_id and uc.year = rtc.year and uc.semester = rtc.semester and uc.class = rtc.class) "
 
     //drop course which has been exists in database
-    queryStatment += "Where not exists (SELECT * FROM userCourse Where user_id = "+ Database.escape(userData.id) +" and course_unique_id = rtc.unique_id);"
+    queryStatment += "Where not exists (SELECT * FROM usercourse Where user_id = "+ Database.escape(userData.id) +" and course_unique_id = rtc.unique_id);"
 
     //drop course which not exist in portal
-    queryStatment += "DELETE FROM userCourse Where user_id = " + Database.escape(userData.id) + " and "
+    queryStatment += "DELETE FROM usercourse Where user_id = " + Database.escape(userData.id) + " and "
     queryStatment += "course_unique_id not in "
     queryStatment += "(SELECT course_unique_id from "
     queryStatment += "(SELECT courses.course_id, userCourseTemp.semester, userCourseTemp.class, userCourseTemp.year FROM (userCourseTemp INNER JOIN courses ON userCourseTemp.code = courses.code)) as uc "
@@ -124,7 +124,7 @@ module.exports.getCurrentCourse = function(userData, next) {
   queryStatment += "SELECT relation_teacher_course.unique_id, courses.cname, relation_teacher_course.classroom FROM "
   queryStatment += "courses INNER JOIN relation_teacher_course ON courses.course_id = relation_teacher_course.course_id "
   queryStatment += "Where "
-  queryStatment += "(relation_teacher_course.unique_id in (SELECT course_unique_id FROM userCourse Where user_id = ?) and relation_teacher_course.year = ? and relation_teacher_course.semester = ?);"
+  queryStatment += "(relation_teacher_course.unique_id in (SELECT course_unique_id FROM usercourse Where user_id = ?) and relation_teacher_course.year = ? and relation_teacher_course.semester = ?);"
 
   query = Database.query(queryStatment, [userData.id, getYearNow(), getSemesterNow()], function(err, result, field) {
     if(!err) {
@@ -177,7 +177,7 @@ module.exports.getHomework = function(userData, next) {
     queryStatment += "(SELECT "
     queryStatment += "course_id, course_unique_id, year, semester, class, pageId "
     queryStatment += "FROM "
-    queryStatment += "userCourse INNER JOIN relation_teacher_course "
+    queryStatment += "usercourse INNER JOIN relation_teacher_course "
     queryStatment += "ON "
     queryStatment += "course_unique_id = relation_teacher_course.unique_id "
     queryStatment += "WHERE user_id = ? and year = ? and semester = ?) as a "
