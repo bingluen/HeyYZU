@@ -75,7 +75,7 @@ module.exports.login = function(req, res, next) {
         resM.state = r.status.state;
         resM.messages = r.status.messages;
         resM.statusCode = r.status.statusCode;
-        res.status(resM.statusCode).json(resM);
+        res.status(500).json(resM);
         Logging.writeMessage('[Response][loginFail]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
         return;
       }
@@ -136,7 +136,7 @@ module.exports.login = function(req, res, next) {
       resM.state = r.status.state;
       resM.messages = r.status.messages;
       resM.statusCode = r.status.statusCode;
-      res.status(resM.statusCode).json(resM);
+      res.status(500).json(resM);
       Logging.writeMessage('[Response][loginFail]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
     }
   }
