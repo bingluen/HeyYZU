@@ -42,7 +42,7 @@ class catchHomework:
 
 
         ### connect portal homepage after login (because set cookie)
-        content = r.get(URL_PORTAL_HOMEPAGE).text
+        self.HomePageContent = r.get(URL_PORTAL_HOMEPAGE).text
 
 
         ### init data structure
@@ -72,6 +72,24 @@ class catchHomework:
             courseDetail['class'] = row[3].text.strip(' ')
             courseDetail['pageID'] = re.findall('PageID=([0-9]+)', row[4].a['href'], re.S)[0]
             self.courseList.append(courseDetail.copy())
+
+    def checkNewHomework(self):
+        content = BeautifulSoup(self.HomePageContent, 'lxml').find(id='divTasks').find_all('a')
+        HomeworkList = []
+        for i in content:
+            HomeworkItem = {}
+            try:
+                data = re.findall('y=([0-9]{3})&s=([0-9])&id=([A-Za-z]{2}[0-9]{3})', i['href'], re.S)[0]
+                title = re.sub('[\n\t]', '', re.findall(data[2] + '](.*)', i.text, re.S)[0] )
+                HomeworkItem['year'] = data[0]
+                HomeworkItem['semester'] = data[1]
+                HomeworkItem['code'] = data[2]
+                HomeworkItem['title'] = re.sub('^[\n\t ]+|[\n\t ]+$', '', title)
+                HomeworkList.append(HomeworkItem)
+            except:
+                #print(i)
+                continue
+        print (json.dumps(HomeworkList))
 
     def getHomework(self, pageID):
         ###connect FirstToPage (because set cookie)
@@ -122,11 +140,16 @@ class catchHomework:
             if(isFinishGetRecord):
                 isFinishGetRecord = False
                 ### first row of a record
+                homeworkItem['pageId'] = pageID
                 homeworkItem['schedule'] = tds[1].text
-                homeworkItem['title'] = tds[2].text
+                homeworkItem['title'] = re.sub('^[\n\t ]+|[\n\t ]+$', '', tds[2].text)
                 homeworkItem['attach'] = self.parseAttach(tds[3])
                 homeworkItem['deadline'] = tds[4].text
                 homeworkItem['uploadFile'] = self.parseUploadFile(tds[5])
+                try:
+                    homeworkItem['wk_id'] = tds[6].span['wk_id']
+                except:
+                    homeworkItem['wk_id'] = None
                 homeworkItem['isGroup'] = False if tds[7].text == u'個人' else True
                 homeworkItem['freeSubmit'] = False if tds[8].text == 'N' else True
                 homeworkItem['grade'] = tds[9].text
@@ -195,6 +218,9 @@ if len(argv) >= 4:
             for i in range(4, len(argv)):
                 resultList = resultList + crawler.getHomework(argv[i])
             print(json.dumps(resultList))
+
+        if(argv[1] == 'checkNewHomework'):
+            crawler.checkNewHomework();
 
         if(argv[1] == 'doing'):
             crawler.doing(int(argv[4]), int(argv[5]))

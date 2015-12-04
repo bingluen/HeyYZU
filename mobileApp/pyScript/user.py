@@ -235,14 +235,17 @@ class User:
 
             ToDoList = []
             for index, todo in enumerate(allToDo):
-                lastDays = re.findall('[0-9]+', todo.next().text())[0]
-                type = re.findall(u'【(.*)】', todo.text())[0]
-                course = re.findall('\[(.*)\]', todo.text())[0]
-                task = re.findall('\](.+)', todo.text())[0][1:]
-                url = URL_FIRST_PAGE + re.findall('\?(.*)',todo.attr['href'])[0]
-                description, fileName, fileLink = self.getHomework(url, task)
+                try:
+                    lastDays = re.findall('[0-9]+', todo.next().text())[0]
+                    type = re.findall(u'【(.*)】', todo.text())[0]
+                    course = re.findall('\[(.*)\]', todo.text())[0]
+                    task = re.findall('\](.+)', todo.text())[0][1:]
+                    url = URL_FIRST_PAGE + re.findall('\?(.*)',todo.attr['href'])[0]
+                    description, fileName, fileLink = self.getHomework(url, task)
 
-                ToDoList.append((lastDays, description, type, course, task, fileName, fileLink))
+                    ToDoList.append((lastDays, description, type, course, task, fileName, fileLink))
+                except:
+                    continue
 
             #Order by lastDays
             ToDoList = sorted(ToDoList, key=lambda x:int(x[0]))

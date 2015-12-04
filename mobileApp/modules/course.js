@@ -166,41 +166,276 @@ module.exports.getCurrentCourse = function(userData, next) {
 
 module.exports.getHomework = function(userData, next) {
 
+  var userCourseDetail, ToDoList;
 
-  var getPageId = function(userData) {
+  var getUserCourseDetail = function() {
     var queryStatment = "";
-    queryStatment += "SELECT pageId "
+    queryStatment += "SELECT "
+    queryStatment += "code, cname, course_unique_id, year, semester, class, pageId "
+    queryStatment += "FROM courses "
+    queryStatment += "NATURAL JOIN "
+    queryStatment += "(SELECT "
+    queryStatment += "course_id, course_unique_id, year, semester, class, pageId "
     queryStatment += "FROM "
     queryStatment += "userCourse INNER JOIN relation_teacher_course "
     queryStatment += "ON "
     queryStatment += "course_unique_id = relation_teacher_course.unique_id "
-    queryStatment += "WHERE user_id = ? and year = ? and semester = ?;"
+    queryStatment += "WHERE user_id = ? and year = ? and semester = ?) as a "
+    queryStatment += ";"
 
     var query = Database.query(queryStatment, [userData.id, getYearNow(), getSemesterNow()], function(err, result, field) {
       if(err)
       {
-        console.log(query.sql)
+        console.log('Error:', err, query.sql)
       } else {
-        crawlerHomework(result)
+        userCourseDetail = result
+        if(!userData.newUserFlag)
+        {
+          checkToDoList();
+        } else {
+          crawlerHomework(userCourseDetail.map(cv => cv.pageId));
+        }
       }
     });
   }
 
-  var crawlerHomework = function(pageIdList) {
+  var checkToDoList = function() {
     var args = []
-    args.push('getHomework')
+    args.push('checkNewHomework')
     args.push(userData.portalUsername)
     args.push(userData.portalPassword)
-    for(var i = 0; i < pageIdList.length; i++)
-      args.push(pageIdList[i].pageId)
 
     PyScript({
       args: args,
       scriptFile: 'homework.py',
     }, function(r) {
-      next(r);
+      ToDoList = r;
+      checkDatabase();
     })
   }
 
-  getPageId(userData)
+  var checkDatabase = function() {
+
+    //Todo list Inner Join userCourse
+    ToDoList = ToDoList.map(function(cv) {
+      course = userCourseDetail.filter(function(c) {
+        return c.code == cv.code;
+      })[0]
+
+      cv.course_unique_id = course.course_unique_id
+      cv.pageId = course.pageId
+
+      return cv;
+    })
+
+    var queryStatment = "";
+    var queryParams = []
+
+    //add the homework which is in `homeworks` but user not get
+    queryStatment += "INSERT INTO userhomework (user_id, homework_unique_id) "
+    queryStatment += "SELECT "+ Database.escape(userData.id) +", unique_id "
+    queryStatment += "FROM homeworks "
+    queryStatment += "WHERE course_unique_id IN"
+    queryStatment += "    ( SELECT course_unique_id"
+    queryStatment += "     FROM usercourse"
+    queryStatment += "     WHERE user_id = "+ Database.escape(userData.id) +")"
+    queryStatment += "  AND unique_id NOT IN"
+    queryStatment += "    (SELECT homework_unique_id"
+    queryStatment += "     FROM userhomework"
+    queryStatment += "     WHERE user_id = "+ Database.escape(userData.id) +");"
+
+    for(var i = 0; i < ToDoList.length; i++)
+    {
+      queryStatment += "SELECT ? as course_unique_id, ? as pageId, count(*) as hw FROM homeworks WHERE course_unique_id = ? and title LIKE ?;"
+      queryParams.push(ToDoList[i].course_unique_id)
+      queryParams.push(ToDoList[i].pageId)
+      queryParams.push(ToDoList[i].course_unique_id)
+      queryParams.push(ToDoList[i].title)
+    }
+
+    //check status of homework which update time is over 24 hours
+    queryStatment += "SELECT distinct(pageId) "
+    queryStatment += "FROM usercourse "
+    queryStatment += "INNER JOIN "
+    queryStatment += "  (SELECT course_unique_id "
+    queryStatment += "   FROM userhomework "
+    queryStatment += "   INNER JOIN homeworks ON homeworks.unique_id = userhomework.homework_unique_id "
+    queryStatment += "   WHERE ((uploadfile IS NULL "
+    queryStatment += "           OR (uploadfile LIKE 'null' "
+    queryStatment += "               AND user_id = ? "
+    queryStatment += "               AND HOUR(timediff(now(), updatetime)) > 24)) "
+    queryStatment += "          AND deadline >= curdate())) AS hw ON usercourse.course_unique_id = hw.course_unique_id; "
+    queryParams.push(userData.id)
+
+    var pageIdList = []
+
+    query = Database.query(queryStatment, queryParams, function(err, r, field) {
+      if(!err)
+      {
+        for(var i = 1; i < r.length - 1; i++)
+        {
+          if(r[i][0].hw == 0 && pageIdList.indexOf(r[i][0].pageId) < 0)
+          {
+            pageIdList.push(r[i][0].pageId)
+          }
+        }
+
+        pageIdList = pageIdList.concat(r[r.length - 1].filter( cv => (pageIdList.indexOf(cv.pageId) < 0)).map(cv => cv.pageId));
+
+        if (pageIdList.length > 0)
+        {
+          crawlerHomework(pageIdList);
+        } else {
+          fetchHomework();
+        }
+      } else {
+        console.log("Error: ", err, query.sql);
+      }
+    });
+
+  }
+
+  var crawlerHomework = function(pageIdList) {
+
+    var args = []
+    args.push('getHomework')
+    args.push(userData.portalUsername)
+    args.push(userData.portalPassword)
+    args = args.concat(pageIdList)
+
+    PyScript({
+      args: args,
+      scriptFile: 'homework.py',
+    }, function(r) {
+      savingHomework(r.map(function(cv) {
+        cv.course_unique_id = userCourseDetail.filter(u => u.pageId == cv.pageId)[0].course_unique_id
+
+        return cv
+      }));
+    })
+  }
+
+  var savingHomework = function(hw) {
+
+    var queryStatment = ""
+    var queryParams = []
+    queryStatment += "create temporary table homeworksTemp ("
+    queryStatment += "  unique_id_TEMP int(50) unsigned auto_increment,"
+    queryStatment += "  course_unique_id int(20) unsigned zerofill not null,"
+    queryStatment += "  portalHwId int(5) unsigned not null,"
+    queryStatment += "  title varchar(200) not null,"
+    queryStatment += "  schedule varchar(200),"
+    queryStatment += "  description text,"
+    queryStatment += "  attach text,"
+    queryStatment += "  isGroup tinyint(1) not null,"
+    queryStatment += "  freeSubmit tinyint(1) not null,"
+    queryStatment += "  deadline datetime,"
+    queryStatment += "  uploadFile text,"
+    queryStatment += "  grade int(2),"
+    queryStatment += "  comment text,"
+    queryStatment += "  user_id int(11) unsigned zerofill, "
+    queryStatment += "  primary key(unique_id_TEMP)"
+    queryStatment += ");"
+
+    for(i = 0 ; i < hw.length; i++) {
+      queryStatment += "INSERT INTO homeworksTemp SET ?;"
+    }
+
+    queryParams = queryParams.concat(hw.map(cv => ({
+      user_id: userData.id,
+      course_unique_id: cv.course_unique_id,
+      portalHwId: cv.wk_id,
+      title: cv.title,
+      schedule: cv.schedule,
+      description: cv.description,
+      isGroup: cv.isGroup == true ? 1 : 0,
+      freeSubmit: cv.freeSubmit == true ? 1: 0,
+      deadline: cv.deadline,
+      attach: JSON.stringify(cv.attach),
+      uploadFile: JSON.stringify(cv.uploadFile),
+      grade: cv.grade,
+      comment: cv.comment
+    })));
+
+    //UPDATE homework which has existed in `homeworks` table
+    queryStatment += "UPDATE homeworksTemp INNER JOIN homeworks ON "
+    queryStatment += "homeworks.course_unique_id = homeworksTemp.course_unique_id and "
+    queryStatment += "homeworks.portalHwId = homeworksTemp.portalHwId "
+    queryStatment += "SET "
+    queryStatment += "homeworks.title = homeworksTemp.title, "
+    queryStatment += "homeworks.schedule = homeworksTemp.schedule, "
+    queryStatment += "homeworks.description = homeworksTemp.description, "
+    queryStatment += "homeworks.isGroup = homeworksTemp.isGroup, "
+    queryStatment += "homeworks.freeSubmit = homeworksTemp.freeSubmit, "
+    queryStatment += "homeworks.deadline = homeworksTemp.deadline, "
+    queryStatment += "homeworks.attach = homeworksTemp.attach,"
+    queryStatment += "homeworks.pushed = 1"
+    queryStatment += ";"
+
+    //Insert homeworks which has not existed in `homeworks` table
+    queryStatment += "INSERT INTO homeworks (course_unique_id, portalhwid, title, schedule, description, isgroup, freesubmit, deadline, attach) "
+    queryStatment += "SELECT course_unique_id, portalHwId, title, schedule, description, isGroup, freeSubmit, deadline, attach "
+    queryStatment += "FROM homeworksTemp "
+    queryStatment += "WHERE not exists "
+    queryStatment += " (SELECT * FROM homeworks "
+    queryStatment += "  WHERE course_unique_id = homeworksTemp.course_unique_id and "
+    queryStatment += "    portalHwId = homeworksTemp.portalHwId"
+    queryStatment += ");"
+
+
+    //UPDATA Homework which has existed in `userHomeworks` table
+    queryStatment += "UPDATE userhomework "
+    queryStatment += "INNER JOIN"
+    queryStatment += "(SELECT user_id, unique_id, uploadFile, grade, comment from homeworksTemp INNER JOIN homeworks ON "
+    queryStatment += "homeworks.course_unique_id = homeworksTemp.course_unique_id and "
+    queryStatment += "homeworks.portalHwId = homeworksTemp.portalHwId) as hw "
+    queryStatment += "ON userhomework.homework_unique_id = hw.unique_id and "
+    queryStatment += "hw.user_id = userhomework.user_id "
+    queryStatment += "SET "
+    queryStatment += "userhomework.uploadFile = hw.uploadFile, "
+    queryStatment += "userhomework.grade = hw.grade, "
+    queryStatment += "userhomework.comment = hw.comment"
+    queryStatment += ";"
+
+    //Insert Homework which has not existed in `userHomeworks` table
+    queryStatment += "INSERT INTO userhomework (homework_unique_id, user_id, uploadFile, grade, comment, updatetime) "
+    queryStatment += "SELECT homeworks.unique_id as homework_unique_id, homeworksTemp.user_id, homeworksTemp.uploadFile, homeworksTemp.grade, homeworksTemp.comment, NOW() "
+    queryStatment += "FROM "
+    queryStatment += "homeworksTemp INNER JOIN homeworks ON "
+    queryStatment += "homeworks.course_unique_id = homeworksTemp.course_unique_id and "
+    queryStatment += "homeworks.portalHwId = homeworksTemp.portalHwId "
+    queryStatment += "WHERE not exists "
+    queryStatment += "(SELECT * FROM userhomework WHERE user_id = homeworksTemp.user_id and homework_unique_id = homeworks.unique_id);"
+
+    queryStatment += "DROP TABLE homeworksTemp;"
+
+    query = Database.query(queryStatment, queryParams, function(err, result, field) {
+      if(err) {
+        console.log('Error: ', err, query.sql);
+      } else {
+        if(result[result.length - 5].changedRows > 0)
+          console.log(result[result.length - 5].changedRows, '部分作業內容已經更動')
+        if(result[result.length - 4].affectedRows > 0)
+          console.log(result[result.length - 4].affectedRows, '作業新增進行推播')
+
+        fetchHomework();
+      }
+    })
+  }
+
+  var fetchHomework = function() {
+    var queryStatment = "SELECT * FROM homeworks INNER JOIN userhomework on homeworks.unique_id = userhomework.homework_unique_id WHERE homeworks.course_unique_id in (SELECT course_unique_id FROM usercourse where user_id = ?)";
+    var queryParams = []
+    queryParams.push(userData.id)
+    query = Database.query(queryStatment, queryParams, function(err, result, field) {
+      if(!err)
+      {
+        next(result)
+      } else {
+        console.log("ERROR: ", err, query.sql);
+      }
+    })
+  }
+
+  getUserCourseDetail()
 }

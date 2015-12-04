@@ -75,7 +75,7 @@ module.exports.login = function(req, res, next) {
         resM.state = r.status.state;
         resM.messages = r.status.messages;
         resM.statusCode = r.status.statusCode;
-        res.status(resM.statusCode).json(resM);
+        res.status(500).json(resM);
         Logging.writeMessage('[Response][loginFail]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
         return;
       }
@@ -136,7 +136,7 @@ module.exports.login = function(req, res, next) {
       resM.state = r.status.state;
       resM.messages = r.status.messages;
       resM.statusCode = r.status.statusCode;
-      res.status(resM.statusCode).json(resM);
+      res.status(500).json(resM);
       Logging.writeMessage('[Response][loginFail]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
     }
   }
@@ -276,7 +276,8 @@ module.exports.homework = function(req, res, next) {
 
   var processingHomework = function(hw)
   {
-    hw = hw.filter(function(cv) { return cv.uploadFile == null && (moment(new Date(cv.deadline)) - moment() >= 0) })
+    hw = hw.filter(cv => (cv.uploadFile == 'null' && (moment(new Date(cv.deadline)) - moment() >= 0)) )
+
     res.status(200).json(hw);
   }
 }
