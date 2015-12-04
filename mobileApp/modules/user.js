@@ -49,7 +49,7 @@ module.exports.login = function(req, res, next) {
     Database.query(queryStatment, params, function(err, row, field) {
       if (err) {
         Logging.writeMessage('[Response][DatabaseError]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
-        res.status(1004).json({
+        res.status(500).json({
           state: 'InternalError',
           messages: 'Internal error',
           statusCode: 1004
@@ -92,7 +92,7 @@ module.exports.login = function(req, res, next) {
       Database.query(queryStatment, params, function(err, row, field) {
         if(err) {
           Logging.writeMessage('[Response][DatabaseError]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
-          res.status(1004).json({
+          res.status(500).json({
             state: 'InternalError',
             messages: 'Internal error',
             statusCode: 1004
@@ -111,7 +111,7 @@ module.exports.login = function(req, res, next) {
             }
             else
             {
-              res.status(1004).json({
+              res.status(500).json({
                 state: 'InternalError',
                 messages: 'Internal error',
                 statusCode: 1004
@@ -147,7 +147,7 @@ module.exports.login = function(req, res, next) {
   //檢驗資料欄位，messages不存在，直接退回
   if(!req.body.messages) {
     Logging.writeMessage('[Response][ParamsError]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
-    res.status(1003).json({
+    res.status(500).json({
       state: 'ParamsError',
       messages: 'Params can not be read',
       statusCode: 1003
@@ -161,7 +161,7 @@ module.exports.login = function(req, res, next) {
   //檢查帳號密碼是否存在
   if(!params.username || !params.username.match(/^s(9[0-9]|1[0-9]{2})[0-9]{4}$/g) || !params.password) {
     Logging.writeMessage('[Response][ParamsError]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
-    res.status(1003).json({
+    res.status(500).json({
       state: 'ParamsError',
       messages: 'Params can not be read',
       statusCode: 1003
@@ -179,7 +179,7 @@ module.exports.profile = function(req, res, next) {
 
   if(!req.body.token) {
     Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
-    res.status(1004).json({
+    res.status(500).json({
       stateCode: 1004,
       status: 'ParamInvalid',
       message: 'Param Invalid',
@@ -190,7 +190,7 @@ module.exports.profile = function(req, res, next) {
   Token.verifyToken(req.body.token, function(isValid, userData) {
     if(!isValid) {
       Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
-      res.status(1004).json({
+      res.status(500).json({
         stateCode: 1004,
         status: 'TokeInvalid',
         message: 'TokenInvalid',
@@ -214,7 +214,7 @@ module.exports.profile = function(req, res, next) {
 module.exports.courses = function(req, res , next) {
   if(!req.body.token) {
     Logging.writeMessage('response to (mobileApp/user/courses) ' + req.ips ,'access')
-    res.status(1004).json({
+    res.status(500).json({
       stateCode: 1004,
       status: 'ParamInvalid',
       message: 'Param Invalid',
@@ -226,7 +226,7 @@ module.exports.courses = function(req, res , next) {
   Token.verifyToken(req.body.token, function(isValid, userData) {
     if(!isValid) {
       Logging.writeMessage('response to (mobileApp/user/courses) ' + req.ips ,'access')
-      res.status(1004).json({
+      res.status(500).json({
         stateCode: 1004,
         status: 'TokeInvalid',
         message: 'TokenInvalid',
@@ -247,7 +247,7 @@ module.exports.courses = function(req, res , next) {
 module.exports.homework = function(req, res, next) {
   if(!req.body.token) {
     Logging.writeMessage('response to (mobileApp/user/homework) ' + req.ips ,'access')
-    res.status(1004).json({
+    res.status(500).json({
       stateCode: 1004,
       status: 'ParamInvalid',
       message: 'Param Invalid',
@@ -259,7 +259,7 @@ module.exports.homework = function(req, res, next) {
   Token.verifyToken(req.body.token, function(isValid, userData) {
     if(!isValid) {
       Logging.writeMessage('response to (mobileApp/user/homework) ' + req.ips ,'access')
-      res.status(1004).json({
+      res.status(500).json({
         stateCode: 1004,
         status: 'TokeInvalid',
         message: 'TokenInvalid',
