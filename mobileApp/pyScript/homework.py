@@ -84,7 +84,7 @@ class catchHomework:
                 HomeworkItem['year'] = data[0]
                 HomeworkItem['semester'] = data[1]
                 HomeworkItem['code'] = data[2]
-                HomeworkItem['title'] = title
+                HomeworkItem['title'] = re.sub('^[\n\t ]+|[\n\t ]+$', '', title)
                 HomeworkList.append(HomeworkItem)
             except:
                 #print(i)
@@ -142,7 +142,7 @@ class catchHomework:
                 ### first row of a record
                 homeworkItem['pageId'] = pageID
                 homeworkItem['schedule'] = tds[1].text
-                homeworkItem['title'] = tds[2].text
+                homeworkItem['title'] = re.sub('^[\n\t ]+|[\n\t ]+$', '', tds[2].text)
                 homeworkItem['attach'] = self.parseAttach(tds[3])
                 homeworkItem['deadline'] = tds[4].text
                 homeworkItem['uploadFile'] = self.parseUploadFile(tds[5])
