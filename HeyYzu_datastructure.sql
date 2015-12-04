@@ -7,7 +7,7 @@
 #
 # Host: 127.0.0.1 (MySQL 10.1.8-MariaDB)
 # Database: HeyYzu
-# Generation Time: 2015-11-26 12:02:39 +0000
+# Generation Time: 2015-12-04 23:37:31 +0000
 # ************************************************************
 
 
@@ -35,7 +35,7 @@ CREATE TABLE `courses` (
   UNIQUE KEY `code` (`code`),
   KEY `dept_id` (`dept_id`),
   CONSTRAINT `courses_ibfk_1` FOREIGN KEY (`dept_id`) REFERENCES `departments` (`dept_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4223 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `courses` WRITE;
 /*!40000 ALTER TABLE `courses` DISABLE KEYS */;
@@ -2530,6 +2530,30 @@ VALUES
 UNLOCK TABLES;
 
 
+# Dump of table homeworks
+# ------------------------------------------------------------
+
+DROP TABLE IF EXISTS `homeworks`;
+
+CREATE TABLE `homeworks` (
+  `unique_id` int(50) unsigned NOT NULL AUTO_INCREMENT,
+  `course_unique_id` int(20) unsigned zerofill NOT NULL,
+  `portalHwId` int(5) unsigned NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `schedule` varchar(200) DEFAULT NULL,
+  `description` text,
+  `attach` text,
+  `isGroup` tinyint(1) NOT NULL,
+  `freeSubmit` tinyint(1) NOT NULL,
+  `deadline` datetime DEFAULT NULL,
+  `pushed` tinyint(1) DEFAULT '0',
+  PRIMARY KEY (`unique_id`),
+  KEY `course_unique_id` (`course_unique_id`),
+  CONSTRAINT `homeworks_ibfk_1` FOREIGN KEY (`course_unique_id`) REFERENCES `relation_teacher_course` (`unique_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+
 # Dump of table professors
 # ------------------------------------------------------------
 
@@ -3522,7 +3546,7 @@ CREATE TABLE `relation_teacher_course` (
   KEY `professor_id` (`professor_id`),
   CONSTRAINT `relation_teacher_course_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`course_id`),
   CONSTRAINT `relation_teacher_course_ibfk_2` FOREIGN KEY (`professor_id`) REFERENCES `professors` (`professor_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16384 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 LOCK TABLES `relation_teacher_course` WRITE;
 /*!40000 ALTER TABLE `relation_teacher_course` DISABLE KEYS */;
@@ -16632,38 +16656,49 @@ CREATE TABLE `user` (
   `lastVerifyTime` datetime NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `portalUsername` (`portalUsername`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
-
-LOCK TABLES `user` WRITE;
-/*!40000 ALTER TABLE `user` DISABLE KEYS */;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
-/*!40000 ALTER TABLE `user` ENABLE KEYS */;
-UNLOCK TABLES;
 
-
-# Dump of table UserCourse
+# Dump of table usercourse
 # ------------------------------------------------------------
 
-DROP TABLE IF EXISTS `UserCourse`;
+DROP TABLE IF EXISTS `usercourse`;
 
-CREATE TABLE `UserCourse` (
+CREATE TABLE `usercourse` (
   `unique_id` int(100) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) unsigned zerofill NOT NULL,
   `course_unique_id` int(20) unsigned zerofill NOT NULL,
+  `pageId` int(10) NOT NULL,
   PRIMARY KEY (`unique_id`),
   KEY `user_id` (`user_id`),
   KEY `course_unique_id` (`course_unique_id`),
   CONSTRAINT `usercourse_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
   CONSTRAINT `usercourse_ibfk_2` FOREIGN KEY (`course_unique_id`) REFERENCES `relation_teacher_course` (`unique_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
-
-LOCK TABLES `UserCourse` WRITE;
-/*!40000 ALTER TABLE `UserCourse` DISABLE KEYS */;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
-/*!40000 ALTER TABLE `UserCourse` ENABLE KEYS */;
-UNLOCK TABLES;
+
+# Dump of table userhomework
+# ------------------------------------------------------------
+
+DROP TABLE IF EXISTS `userhomework`;
+
+CREATE TABLE `userhomework` (
+  `unique_id` int(100) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) unsigned zerofill DEFAULT NULL,
+  `homework_unique_id` int(50) unsigned NOT NULL,
+  `uploadFile` text,
+  `grade` int(2) DEFAULT NULL,
+  `comment` text,
+  `updatetime` datetime NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`unique_id`),
+  KEY `homework_unique_id` (`homework_unique_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `userhomework_ibfk_1` FOREIGN KEY (`homework_unique_id`) REFERENCES `homeworks` (`unique_id`),
+  CONSTRAINT `userhomework_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 
 
 
