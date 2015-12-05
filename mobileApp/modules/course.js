@@ -149,6 +149,14 @@ module.exports.getCurrentCourse = function(userData, next) {
               currentCourse.push(row)
             }
           } catch (err) {
+            currentCourse.push({
+              classid: result[i].unique_id,
+              name: result[i].cname,
+              day: -1,
+              start_time: null,
+              end_time: null,
+              location: null
+            })
           }
         }
 
