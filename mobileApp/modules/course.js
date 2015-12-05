@@ -440,10 +440,7 @@ module.exports.getHomework = function(userData, next) {
     queryStatment += "       userhomework.comment "
     queryStatment += "FROM homeworks "
     queryStatment += "INNER JOIN userhomework ON homeworks.unique_id = userhomework.homework_unique_id "
-    queryStatment += "WHERE homeworks.course_unique_id IN "
-    queryStatment += "    (SELECT course_unique_id "
-    queryStatment += "     FROM usercourse "
-    queryStatment += "     WHERE user_id = ?) "
+    queryStatment += "WHERE userhomework.user_id = ? "
     var queryParams = []
     queryParams.push(userData.id)
     query = Database.query(queryStatment, queryParams, function(err, result, field) {
