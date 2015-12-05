@@ -276,7 +276,13 @@ module.exports.homework = function(req, res, next) {
 
   var processingHomework = function(hw)
   {
-    hw = hw.filter(cv => (cv.uploadFile == null && (moment(new Date(cv.deadline)) - moment() >= 0)) )
+    hw = hw.filter(cv => (cv.uploadFile == null && (moment(cv.deadline) - moment() >= 0)) )
+
+    hw = hw.map(function(cv) {
+      cv.deadline = moment(cv.deadline).add({hours:23, minutes:59, seconds:59}).format("YYYY-MM-DD HH:mm:ss")
+      return cv;
+    })
+
 
     res.status(200).json(hw);
   }
