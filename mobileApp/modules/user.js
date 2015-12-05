@@ -276,7 +276,7 @@ module.exports.homework = function(req, res, next) {
 
   var processingHomework = function(hw)
   {
-    hw = hw.filter(cv => (cv.uploadFile == 'null' && (moment(new Date(cv.deadline)) - moment() >= 0)) )
+    hw = hw.filter(cv => (cv.uploadFile == null && (moment(new Date(cv.deadline)) - moment() >= 0)) )
 
     res.status(200).json(hw);
   }

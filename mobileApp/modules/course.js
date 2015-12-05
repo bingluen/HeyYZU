@@ -424,12 +424,44 @@ module.exports.getHomework = function(userData, next) {
   }
 
   var fetchHomework = function() {
-    var queryStatment = "SELECT * FROM homeworks INNER JOIN userhomework on homeworks.unique_id = userhomework.homework_unique_id WHERE homeworks.course_unique_id in (SELECT course_unique_id FROM usercourse where user_id = ?)";
+    var queryStatment = ""
+    queryStatment += "SELECT homeworks.unique_id AS hw_uid, "
+    queryStatment += "       homeworks.course_unique_id, "
+    queryStatment += "       homeworks.title, "
+    queryStatment += "       homeworks.schedule, "
+    queryStatment += "       homeworks.description, "
+    queryStatment += "       homeworks.attach, "
+    queryStatment += "       homeworks.isgroup, "
+    queryStatment += "       homeworks.freesubmit, "
+    queryStatment += "       homeworks.deadline, "
+    queryStatment += "       userhomework.unique_id AS user_hw_uid, "
+    queryStatment += "       userhomework.uploadFile, "
+    queryStatment += "       userhomework.grade, "
+    queryStatment += "       userhomework.comment "
+    queryStatment += "FROM homeworks "
+    queryStatment += "INNER JOIN userhomework ON homeworks.unique_id = userhomework.homework_unique_id "
+    queryStatment += "WHERE homeworks.course_unique_id IN "
+    queryStatment += "    (SELECT course_unique_id "
+    queryStatment += "     FROM usercourse "
+    queryStatment += "     WHERE user_id = ?) "
     var queryParams = []
     queryParams.push(userData.id)
     query = Database.query(queryStatment, queryParams, function(err, result, field) {
       if(!err)
       {
+        result.map(function(cv) {
+          try {
+            cv.attach = JSON.parse(cv.attach);
+          } catch(e) {
+            cv.attach = null;
+          }
+          try {
+            cv.uploadFile = JSON.parse(cv.uploadFile);
+          } catch(e) {
+            cv.uploadFile = null;
+          }
+          return cv;
+        })
         next(result)
       } else {
         console.log("ERROR: ", err, query.sql);
