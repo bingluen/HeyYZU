@@ -48,7 +48,7 @@ module.exports.login = function(req, res, next) {
     params.push(userData.username);
     Database.query(queryStatment, params, function(err, row, field) {
       if (err) {
-        Logging.writeMessage('[Response][DatabaseError]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
+        Logging.writeMessage('[Response][DatabaseError]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' } [' + err + ']','access')
         res.status(500).json({
           state: 'InternalError',
           messages: 'Internal error',
@@ -91,7 +91,7 @@ module.exports.login = function(req, res, next) {
       params.push(userData.birth);
       Database.query(queryStatment, params, function(err, row, field) {
         if(err) {
-          Logging.writeMessage('[Response][DatabaseError]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' }','access')
+          Logging.writeMessage('[Response][DatabaseError]['+ req.ip +']path:user/login. DetailIp{ '+ req.ips + ' } [' + err + ']','access')
           res.status(500).json({
             state: 'InternalError',
             messages: 'Internal error',
