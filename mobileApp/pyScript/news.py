@@ -19,7 +19,7 @@ def writeFile(filename, content):
     f.write(content)
     f.close()
 
-class catchHomework:
+class catchNews:
 
     def __init__ (self, username, password):
         content = r.post(URL_LOGIN).text
@@ -91,7 +91,7 @@ argv = sys.argv
 
 if len(argv) >= 3:
     try:
-        crawler = catchHomework(argv[1], argv[2])
+        crawler = catchNews(argv[1], argv[2])
         crawler.parser()
     except Exception,e:
         print 'error:', e
