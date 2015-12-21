@@ -5,6 +5,7 @@ import re
 import sys
 import json
 import time
+from time import strftime
 
 URL_LOGIN = 'https://portalx.yzu.edu.tw/PortalSocialVB/Login.aspx'
 URL_PORTAL_HOMEPAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/DefaultPage.aspx?Menu=Default'
@@ -12,6 +13,7 @@ URL_STUDY_HISTORY = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/PageByDuty.
 URL_FIRST_TO_PAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FPage/FirstToPage.aspx?PageID='
 URL_HOMEWORK_PAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/THom/HomeworkList.aspx?Menu=Hom'
 URL_DOWNLOAD_ATTACH = 'https://portalx.yzu.edu.tw/PortalSocialVB/File_DownLoad_Wk_zip.aspx?'
+URL_AJAX = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/DefaultPageRequest.ashx'
 
 r = requests.Session()
 
@@ -28,6 +30,7 @@ class catchHomework:
         ecoVIEWSTATEGENERATOR = re.findall('id="__VIEWSTATEGENERATOR" value="([^"]*)"', content, re.S)
         ecoVIEWSTATE = re.findall('__VIEWSTATE" id="__VIEWSTATE" value="([^"]*)"', content, re.S)[0]
         ecoEVENTVALIDATION = re.findall('__EVENTVALIDATION" id="__EVENTVALIDATION" value="([^"]*)"', content, re.S)[0]
+        self.username = username
         self.postdata={
                 '__VIEWSTATE':ecoVIEWSTATE,
                 '__VIEWSTATEGENERATOR':ecoEVENTVALIDATION,
@@ -74,13 +77,21 @@ class catchHomework:
             self.courseList.append(courseDetail.copy())
 
     def checkNewHomework(self):
-        content = BeautifulSoup(self.HomePageContent, 'lxml').find(id='divTasks').find_all('a')
+        postData =  {
+                    'RequestType': 'loadMyScheduleDataTable',
+                    'TheDay': strftime('%Y/%m/%d'), #today
+                    'UserAccount':self.username
+                    }
+        response = r.post(URL_AJAX, data=json.dumps(postData), headers={'content-type': 'application/json'}).json()
+
+        HomeworkContent = [x for x in response if x['TypeCode'] == 'A3']
+
         HomeworkList = []
-        for i in content:
+        for i in HomeworkContent:
             HomeworkItem = {}
             try:
-                data = re.findall('y=([0-9]{3})&s=([0-9])&id=([A-Za-z]{2}[0-9]{3})', i['href'], re.S)[0]
-                title = re.sub('[\n\t]', '', re.findall(data[2] + '](.*)', i.text, re.S)[0] )
+                data = re.findall('y=([0-9]{3})&s=([0-9])&id=([A-Za-z]{2}[0-9]{3})', i['URL'], re.S)[0]
+                title = re.sub('[\n\t]', '', re.findall(data[2] + '](.*)', i['Title'], re.S)[0] )
                 HomeworkItem['year'] = data[0]
                 HomeworkItem['semester'] = data[1]
                 HomeworkItem['code'] = data[2]
