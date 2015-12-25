@@ -6,5 +6,6 @@ router.post('/login', user.login);
 router.post('/profile', user.profile);
 router.post('/course', user.courses);
 router.post('/homework', user.homework);
+router.post('/notice', user.notice);
 
 module.exports = router;

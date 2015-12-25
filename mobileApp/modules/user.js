@@ -4,6 +4,7 @@ var Database = require(__MobileAppBase + 'modules/database');
 var RSA = require(__MobileAppBase + 'modules/rsa');
 var Token = require(__MobileAppBase + 'modules/token');
 var Course = require(__MobileAppBase + 'modules/course')
+var Notice = require(__MobileAppBase + 'modules/news');
 var privateRSA = RSA('private');
 var publicRSA = RSA();
 var ursa = require('ursa');
@@ -182,7 +183,7 @@ module.exports.profile = function(req, res, next) {
     res.status(500).json({
       stateCode: 1004,
       status: 'ParamInvalid',
-      message: 'Param Invalid',
+      message: 'Param Invalid'
     })
     return;
   }
@@ -193,7 +194,7 @@ module.exports.profile = function(req, res, next) {
       res.status(500).json({
         stateCode: 1004,
         status: 'TokeInvalid',
-        message: 'TokenInvalid',
+        message: 'TokenInvalid'
       })
     } else {
       res.status(200).json({
@@ -217,7 +218,7 @@ module.exports.courses = function(req, res , next) {
     res.status(500).json({
       stateCode: 1004,
       status: 'ParamInvalid',
-      message: 'Param Invalid',
+      message: 'Param Invalid'
     })
     return;
   }
@@ -229,7 +230,7 @@ module.exports.courses = function(req, res , next) {
       res.status(500).json({
         stateCode: 1004,
         status: 'TokeInvalid',
-        message: 'TokenInvalid',
+        message: 'TokenInvalid'
       })
     } else {
       getCourses(userData);
@@ -250,7 +251,7 @@ module.exports.homework = function(req, res, next) {
     res.status(500).json({
       stateCode: 1004,
       status: 'ParamInvalid',
-      message: 'Param Invalid',
+      message: 'Param Invalid'
     })
     return;
   }
@@ -262,7 +263,7 @@ module.exports.homework = function(req, res, next) {
       res.status(500).json({
         stateCode: 1004,
         status: 'TokeInvalid',
-        message: 'TokenInvalid',
+        message: 'TokenInvalid'
       })
     } else {
       getHomework(userData);
@@ -285,5 +286,79 @@ module.exports.homework = function(req, res, next) {
 
 
     res.status(200).json(hw);
+  }
+}
+
+module.exports.notice = function(req, res, next) {
+  var ud = {}
+  if(!req.body.token) {
+    Logging.writeMessage('response to (mobileApp/user/homework) ' + req.ips ,'access')
+    res.status(500).json({
+      stateCode: 1004,
+      status: 'InternalError',
+      message: 'Internal Error'
+    })
+    return;
+  }
+
+  // verifyToken
+  Token.verifyToken(req.body.token, function(isValid, userData) {
+    if(!isValid) {
+      Logging.writeMessage('response to (mobileApp/user/notice) ' + req.ips ,'access')
+      res.status(500).json({
+        stateCode: 1004,
+        status: 'InternalError',
+        message: 'Internal Error'
+      })
+    } else {
+      checkNoticeUpdateTime(userData);
+    }
+  })
+
+  //check notice update time
+  var checkNoticeUpdateTime = function(userData) {
+    ud = {id: userData.id, portalUsername: userData.portalUsername, portalPassword: privateRSA.decrypt(userData.portalPassword, 'base64', 'utf8')};
+    Notice.getUpdateTime(ud, policy);
+  }
+
+  var policy = function(err, result) {
+    if(err) {
+      Logging.writeMessage('response to (mobileApp/user/notice) ' + req.ips ,'access')
+      res.status(500).json({
+        stateCode: 1004,
+        status: 'InternalError',
+        message: 'Internal Error'
+      })
+    } else {
+      result = result.filter(cv => moment() - moment(cv.update_time) > 15 * 60 * 1000)
+      if (result.length > 0) {
+        Notice.catch(ud, function() {
+          Notice.getNews(ud, response);
+        })
+      } else {
+        Notice.getNews(ud, response)
+      }
+    }
+  }
+
+  var response = function(err, result) {
+    if(err) {
+      Logging.writeMessage('response to (mobileApp/user/notice) ' + req.ips ,'access')
+      res.status(500).json({
+        stateCode: 1004,
+        status: 'InternalError',
+        message: 'Internal Error'
+      })
+    } else {
+      res.status(200).json({
+        stateCode: 200,
+        state: 'get notice Success',
+        messages: 'get notice Success',
+        data: result.map(function(cv) {
+          cv.deadline = moment(cv.date).format("YYYY-MM-DD")
+          return cv;
+        })
+      })
+    }
   }
 }

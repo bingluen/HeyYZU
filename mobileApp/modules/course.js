@@ -1,23 +1,6 @@
 var PyScript = require(__MobileAppBase + 'modules/runPython');
 var Database = require(__MobileAppBase + 'modules/database');
-
-
-var getYearNow = function()
-{
-  var nowTime = new Date(Date.now());
-  var year = nowTime.getYear() - 11;
-  if(year <= 7) return year - 1;
-  else return year;
-}
-
-var getSemesterNow = function()
-{
-  var nowTime = new Date(Date.now());
-  var month = nowTime.getMonth();
-
-  if(month <= 7 && month >= 2) return 2;
-  else return 1;
-}
+var Tool = require(__MobileAppBase + 'modules/tool');
 
 var lessonToTime = function(lesson)
 {
