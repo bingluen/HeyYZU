@@ -12,6 +12,7 @@ URL_PORTAL_HOMEPAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/DefaultPa
 URL_PORTAL_POSTWALL = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/PostWall.aspx?Menu=Default&PageType=MA'
 URL_PORTAL_POSTINNER = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/PostWall.aspx/divParentInnerHtml'
 URL_PORTAL_GETPOSTWALL = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/PostWall.aspx/GetPostWall'
+URL_PORTAL_POSTATTACH = 'https://portalx.yzu.edu.tw/PortalSocialVB/DownloadFile.aspx?'
 
 r = requests.Session()
 
@@ -91,11 +92,13 @@ class catchNews:
                 continue
             postContent = {}
             try:
-                postContent['PageId'] = re.findall('PageID=([0-9]+)', detail[1].a['href'], re.S)[0]
+                postContent['portalId'] = re.findall('ShowPostGridUnique\(([0-9]+),1\)' ,detail[2].a['href'], re.S)[0]
+                postContent['pageId'] = re.findall('PageID=([0-9]+)', detail[1].a['href'], re.S)[0]
                 postContent['author'] = post.find('img', class_='imgPostAuthor')['title']
                 postContent['title'] = re.sub(u'【.*】|\([0-9]{4}_[A-Z]{2}[0-9]{3}_[A-Z]\)', '', detail[2].text)
                 postContent['date'] = detail[4].text
                 postContent['content'] = self.getNewsContent(re.findall('ShowPostGridUnique\(([0-9]+),1\)' ,detail[2].a['href'], re.S)[0])
+                postContent['attach'] = self.parseAttach()
                 postList.append(postContent)
             except Exception,e:
                 print 'error',e
@@ -113,7 +116,19 @@ class catchNews:
             'pageShow': 1
         }
         content = r.post(URL_PORTAL_POSTINNER, data=json.dumps(data), headers=headers).text
+        self.newsContent = content
         return html_parser.unescape(BeautifulSoup(json.loads(content)['d'], 'lxml').find('textarea').text)
+
+    def parseAttach(self):
+        if BeautifulSoup(json.loads(self.newsContent)['d'], 'lxml').find('tr').find('a').img is not None:
+            url = BeautifulSoup(json.loads(self.newsContent)['d'], 'lxml').find('tr').find('a')['href']
+            return {
+                'CourseType': re.findall('CourseType=([0-9])', url, re.S)[0],
+                'AttachmentID': re.findall('AttachmentID=([0-9]+)', url, re.S)[0],
+                'AttachmentFileName': re.findall('AttachmentFileName=(.+)', url, re.S)[0]
+            }
+        else:
+            return None
 
     def getNextPageWall(self, page):
         headers = {'content-type': 'application/json'}
@@ -139,4 +154,4 @@ else:
     print('No action specified.')
     sys.exit()
 
-print("--- %s seconds ---" % (time.time() - start_time))
+#print("--- %s seconds ---" % (time.time() - start_time))
