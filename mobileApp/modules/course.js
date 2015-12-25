@@ -2,6 +2,9 @@ var PyScript = require(__MobileAppBase + 'modules/runPython');
 var Database = require(__MobileAppBase + 'modules/database');
 var Tool = require(__MobileAppBase + 'modules/tool');
 
+var getYearNow = Tool.getYearNow;
+var getSemesterNow = Tool.getSemesterNow;
+
 var lessonToTime = function(lesson)
 {
   lesson %= 100;
