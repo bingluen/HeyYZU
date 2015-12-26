@@ -39,14 +39,6 @@ module.exports.catch = function(userData, next) {
       attach: JSON.stringify(cv.attach)
     })));
 
-    //renew notice_last_update list
-    queryStatment += "INSERT INTO notice_last_update (course_unique_id) "
-    queryStatment += "SELECT DISTINCT course_unique_id "
-    queryStatment += "FROM usercourse "
-    queryStatment += "WHERE course_unique_id NOT IN "
-    queryStatment += "    (SELECT course_unique_id "
-    queryStatment += "     FROM notice_last_update); "
-
     //renew notice_last_update refresh time
     queryStatment += "UPDATE notice_last_update "
     queryStatment += "SET update_time = CURRENT_TIMESTAMP "
@@ -166,6 +158,26 @@ module.exports.getUpdateTime = function(userData, next) {
       next(null, result);
     } else {
       next(err)
+    }
+  })
+}
+
+module.exports.renewNoticeList = function(next) {
+  var queryStatment = "";
+  //renew notice_last_update list
+  queryStatment += "INSERT INTO notice_last_update (course_unique_id) "
+  queryStatment += "SELECT DISTINCT course_unique_id "
+  queryStatment += "FROM usercourse "
+  queryStatment += "WHERE course_unique_id NOT IN "
+  queryStatment += "    (SELECT course_unique_id "
+  queryStatment += "     FROM notice_last_update); "
+
+  Database.query(queryStatment, [], function(err, result ,field){
+    if(err)
+    {
+      next(err);
+    } else {
+      next(null, result);
     }
   })
 }

@@ -315,10 +315,30 @@ module.exports.notice = function(req, res, next) {
     }
   })
 
+
   //check notice update time
   var checkNoticeUpdateTime = function(userData) {
     ud = {id: userData.id, portalUsername: userData.portalUsername, portalPassword: privateRSA.decrypt(userData.portalPassword, 'base64', 'utf8')};
-    Notice.getUpdateTime(ud, policy);
+    //refresh notice update time Table
+    Notice.renewNoticeList(function(err, result) {
+      if(!err) {
+        if(result.affectedRows > 0) {
+          Notice.catch(ud, function() {
+            Notice.getNews(ud, response);
+          })
+        } else {
+          Notice.getUpdateTime(ud, policy);
+        }
+      } else {
+        Logging.writeMessage('response to (mobileApp/user/notice) ' + req.ips ,'access')
+        res.status(500).json({
+          stateCode: 1004,
+          status: 'InternalError',
+          message: 'Internal Error'
+        })
+      }
+    });
+
   }
 
   var policy = function(err, result) {
