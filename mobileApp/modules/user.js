@@ -192,7 +192,7 @@ module.exports.profile = function(req, res, next) {
     if(!isValid) {
       Logging.writeMessage('response to (mobileApp/user/profile) ' + req.ips ,'access')
       res.status(500).json({
-        stateCode: 1004,
+        stateCode: 1005,
         status: 'TokeInvalid',
         message: 'TokenInvalid'
       })
@@ -228,7 +228,7 @@ module.exports.courses = function(req, res , next) {
     if(!isValid) {
       Logging.writeMessage('response to (mobileApp/user/courses) ' + req.ips ,'access')
       res.status(500).json({
-        stateCode: 1004,
+        stateCode: 1005,
         status: 'TokeInvalid',
         message: 'TokenInvalid'
       })
@@ -261,7 +261,7 @@ module.exports.homework = function(req, res, next) {
     if(!isValid) {
       Logging.writeMessage('response to (mobileApp/user/homework) ' + req.ips ,'access')
       res.status(500).json({
-        stateCode: 1004,
+        stateCode: 1005,
         status: 'TokeInvalid',
         message: 'TokenInvalid'
       })
@@ -306,9 +306,9 @@ module.exports.notice = function(req, res, next) {
     if(!isValid) {
       Logging.writeMessage('response to (mobileApp/user/notice) ' + req.ips ,'access')
       res.status(500).json({
-        stateCode: 1004,
-        status: 'InternalError',
-        message: 'Internal Error'
+        stateCode: 1005,
+        status: 'TokeInvalid',
+        message: 'Toke Invalid'
       })
     } else {
       checkNoticeUpdateTime(userData);
