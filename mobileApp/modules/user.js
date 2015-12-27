@@ -375,7 +375,7 @@ module.exports.notice = function(req, res, next) {
         state: 'get notice Success',
         messages: 'get notice Success',
         data: result.map(function(cv) {
-          cv.deadline = moment(cv.date).format("YYYY-MM-DD")
+          cv.date = moment(cv.date).format("YYYY-MM-DD")
           return cv;
         })
       })
