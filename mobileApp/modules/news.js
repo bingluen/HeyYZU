@@ -130,7 +130,7 @@ module.exports.getNews = function(userData, next) {
   queryParams.push(userData.id);
   var query = Database.query(queryStatment, queryParams, function(err, result, field) {
     if(!err) {
-      next(null, result)
+      next(null, result.map(function(cv) { cv.attach = JSON.parse(cv.attach); return cv }))
     } else {
       next(err)
     }
