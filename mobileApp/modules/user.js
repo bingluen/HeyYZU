@@ -9,6 +9,8 @@ var privateRSA = RSA('private');
 var publicRSA = RSA();
 var ursa = require('ursa');
 var moment = require('moment');
+var mmm = require('mmmagic'),
+    Magic = mmm.Magic;
 
 module.exports.login = function(req, res, next) {
   var userData = {}
@@ -427,11 +429,19 @@ module.exports.attach = function(req ,res, next) {
             })
           } else {
             var buffer = new Buffer(r.result, 'base64')
-            res.writeHead(200, {
-              'Content-Type': req.params.attachName.match(/\.(.*)$/)[1],
-              'Content-Length': buffer.length
-            });
-            res.end(buffer);
+            var magic = new Magic(mmm.MAGIC_MIME_TYPE | mmm.MAGIC_MIME_ENCODING);
+            magic.detect(buffer, function(err, result){
+              if(err) {
+                console.log(err)
+              } else {
+                res.writeHead(200, {
+                  'Content-Type': result,
+                  'Content-Disposition': 'inline; filename="'+req.params.attachName+'"',
+                  'Content-Length': buffer.length
+                });
+                res.end(buffer);
+              }
+            })
           }
         })
       } else {
@@ -442,11 +452,19 @@ module.exports.attach = function(req ,res, next) {
           if(r)
           {
             var buffer = new Buffer(r.result, 'base64')
-            res.writeHead(200, {
-              'Content-Type': req.params.attachName.match(/\.(.*)$/)[1],
-              'Content-Length': buffer.length
-            });
-            res.end(buffer);
+            var magic = new Magic(mmm.MAGIC_MIME_TYPE | mmm.MAGIC_MIME_ENCODING);
+            magic.detect(buffer, function(err, result){
+              if(err) {
+                console.log(err)
+              } else {
+                res.writeHead(200, {
+                  'Content-Type': result,
+                  'Content-Disposition': 'inline; filename="'+req.params.attachName+'"',
+                  'Content-Length': buffer.length
+                });
+                res.end(buffer);
+              }
+            })
           }
         })
       }

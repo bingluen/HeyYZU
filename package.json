@@ -27,6 +27,7 @@
     "connect-multiparty": "^2.0.0",
     "express": "^4.13.3",
     "fs-extra": "^0.24.0",
+    "mmmagic": "^0.4.1",
     "moment": "^2.10.6",
     "mysql": "^2.9.0",
     "path": "^0.12.7",
