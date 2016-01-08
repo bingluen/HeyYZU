@@ -138,8 +138,8 @@ class catchNews:
         }
         content = r.post(URL_PORTAL_GETPOSTWALL, data=json.dumps(data), headers=headers).text
         return BeautifulSoup(json.loads(content)['d'], 'lxml').find_all(class_='PanelPost')
-    def downloadAttach(self, attachID, filename):
-        content = r.get(URL_PORTAL_POSTATTACH+'CourseType=1&AttachmentID='+attachID+'&AttachmentFileName='+filename).content
+    def downloadAttach(self, attachID, filename, ptype):
+        content = r.get(URL_PORTAL_POSTATTACH+'CourseType='+ptype+'&AttachmentID='+attachID+'&AttachmentFileName='+filename).content
         self.message['result']=base64.b64encode(content)
         stdardOut (json.dumps(self.message))
 
@@ -152,7 +152,7 @@ if len(argv) >= 3:
     if argv[1] == 'getAttach':
         try:
             crawler = catchNews(argv[2], argv[3])
-            crawler.downloadAttach(argv[4], argv[5])
+            crawler.downloadAttach(argv[4], argv[5], argv[6])
         except Exception,e:
             print 'error:', e
     else:

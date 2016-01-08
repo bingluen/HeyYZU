@@ -197,8 +197,8 @@ class catchHomework:
 
             return uploadDetail
 
-    def getAttach(self, attachID, filename):
-        download = r.get(URL_DOWNLOAD_ATTACH+'File_name='+filename+'&id='+attachID+'&type=3')
+    def getAttach(self, attachID, filename, ptype):
+        download = r.get(URL_DOWNLOAD_ATTACH+'File_name='+filename+'&id='+attachID+'&type='+ptype)
         message = {
             'result': base64.b64encode(download.content)
         }
@@ -238,7 +238,7 @@ if len(argv) >= 4:
             crawler.checkNewHomework();
 
         if(argv[1] == 'getAttach'):
-            crawler.getAttach(argv[4], argv[5])
+            crawler.getAttach(argv[4], argv[5], argv[6])
 
         if(argv[1] == 'doing'):
             crawler.doing(int(argv[4]), int(argv[5]))

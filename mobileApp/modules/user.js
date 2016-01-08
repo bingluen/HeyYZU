@@ -411,10 +411,10 @@ module.exports.attach = function(req ,res, next) {
   var catchAttach = function(userData) {
     ud = {id: userData.id, portalUsername: userData.portalUsername, portalPassword: privateRSA.decrypt(userData.portalPassword, 'base64', 'utf8')};
 
-    if ((req.params.type == 'notice' || req.params.type == 'homework') && (parseInt(req.params.attachID) && req.params.attachName)) {
+    if ((req.params.type == 'notice' || req.params.type == 'homework') && (parseInt(req.params.attachID) && req.params.attachName && req.params.ptype)) {
       if(req.params.type == 'notice') {
         PyScript({
-          args: ['getAttach', ud.portalUsername, ud.portalPassword, parseInt(req.params.attachID), req.params.attachName],
+          args: ['getAttach', ud.portalUsername, ud.portalPassword, parseInt(req.params.attachID), req.params.attachName, req.params.ptype],
           scriptFile: 'news.py'
         }, function(r) {
           if(r && r['status']['statusCode'] != 1001)
@@ -436,7 +436,7 @@ module.exports.attach = function(req ,res, next) {
         })
       } else {
         PyScript({
-          args: ['getAttach', ud.portalUsername, ud.portalPassword, parseInt(req.params.attachID), req.params.attachName],
+          args: ['getAttach', ud.portalUsername, ud.portalPassword, parseInt(req.params.attachID), req.params.attachName, req.params.ptype],
           scriptFile: 'homework.py'
         }, function(r) {
           if(r)
