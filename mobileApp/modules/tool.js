@@ -2,7 +2,7 @@ module.exports.getYearNow = function()
 {
   var nowTime = new Date(Date.now());
   var year = nowTime.getYear() - 11;
-  if(year <= 7) return year - 1;
+  if(nowTime.getMonth() <= 7) return year - 1;
   else return year;
 }
 
