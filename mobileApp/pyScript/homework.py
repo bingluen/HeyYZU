@@ -6,6 +6,7 @@ import sys
 import json
 import time
 from time import strftime
+import base64
 
 URL_LOGIN = 'https://portalx.yzu.edu.tw/PortalSocialVB/Login.aspx'
 URL_PORTAL_HOMEPAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/DefaultPage.aspx?Menu=Default'
@@ -196,9 +197,12 @@ class catchHomework:
 
             return uploadDetail
 
-    def getAttach(self, attach):
-        download = r.get(URL_DOWNLOAD_ATTACH+'File_name='+attach['filename']+'&id='+attach['id']+'&type='+attach['type'])
-        writeFile(attach['filename'], download.content)
+    def getAttach(self, attachID, filename):
+        download = r.get(URL_DOWNLOAD_ATTACH+'File_name='+filename+'&id='+attachID+'&type=3')
+        message = {
+            'result': base64.b64encode(download.content)
+        }
+        print (json.dumps(message))
 
     def doing(self, year, semester):
         resultList = []
@@ -232,6 +236,9 @@ if len(argv) >= 4:
 
         if(argv[1] == 'checkNewHomework'):
             crawler.checkNewHomework();
+
+        if(argv[1] == 'getAttach'):
+            crawler.getAttach(argv[4], argv[5])
 
         if(argv[1] == 'doing'):
             crawler.doing(int(argv[4]), int(argv[5]))

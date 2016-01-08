@@ -382,3 +382,81 @@ module.exports.notice = function(req, res, next) {
     }
   }
 }
+
+module.exports.attach = function(req ,res, next) {
+  if(!req.params.token) {
+    Logging.writeMessage('response to (mobileApp/user/getAttach) ' + req.ips ,'access')
+    res.status(500).json({
+      stateCode: 1004,
+      status: 'InternalError',
+      message: 'Internal Error'
+    })
+    return;
+  }
+
+  // verifyToken
+  Token.verifyToken(req.params.token, function(isValid, userData) {
+    if(!isValid) {
+      Logging.writeMessage('response to (mobileApp/user/getAttach) ' + req.ips ,'access')
+      res.status(500).json({
+        stateCode: 1005,
+        status: 'TokeInvalid',
+        message: 'Toke Invalid'
+      })
+    } else {
+      catchAttach(userData);
+    }
+  })
+
+  var catchAttach = function(userData) {
+    ud = {id: userData.id, portalUsername: userData.portalUsername, portalPassword: privateRSA.decrypt(userData.portalPassword, 'base64', 'utf8')};
+
+    if ((req.params.type == 'notice' || req.params.type == 'homework') && (parseInt(req.params.attachID) && req.params.attachName)) {
+      if(req.params.type == 'notice') {
+        PyScript({
+          args: ['getAttach', ud.portalUsername, ud.portalPassword, parseInt(req.params.attachID), req.params.attachName],
+          scriptFile: 'news.py'
+        }, function(r) {
+          if(r && r['status']['statusCode'] != 1001)
+          {
+            Logging.writeMessage('[Response][PythonError]['+ req.ip +']news Model ','access')
+            res.status(500).json({
+              state: 'InternalError',
+              messages: 'Internal error',
+              statusCode: 1002
+            })
+          } else {
+            var buffer = new Buffer(r.result, 'base64')
+            res.writeHead(200, {
+              'Content-Type': req.params.attachName.match(/\.(.*)$/)[1],
+              'Content-Length': buffer.length
+            });
+            res.end(buffer);
+          }
+        })
+      } else {
+        PyScript({
+          args: ['getAttach', ud.portalUsername, ud.portalPassword, parseInt(req.params.attachID), req.params.attachName],
+          scriptFile: 'homework.py'
+        }, function(r) {
+          if(r)
+          {
+            var buffer = new Buffer(r.result, 'base64')
+            res.writeHead(200, {
+              'Content-Type': req.params.attachName.match(/\.(.*)$/)[1],
+              'Content-Length': buffer.length
+            });
+            res.end(buffer);
+          }
+        })
+      }
+    } else {
+      Logging.writeMessage('response to (mobileApp/user/getAttach) ' + req.ips ,'access')
+      res.status(500).json({
+        stateCode: 1006,
+        status: 'ParamsInvalid',
+        message: 'Params Invalid'
+      })
+    }
+  }
+}

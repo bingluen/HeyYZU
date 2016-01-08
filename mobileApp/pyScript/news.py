@@ -6,6 +6,7 @@ import sys
 import json
 import time
 import HTMLParser
+import base64
 
 URL_LOGIN = 'https://portalx.yzu.edu.tw/PortalSocialVB/Login.aspx'
 URL_PORTAL_HOMEPAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/DefaultPage.aspx?Menu=Default'
@@ -137,6 +138,10 @@ class catchNews:
         }
         content = r.post(URL_PORTAL_GETPOSTWALL, data=json.dumps(data), headers=headers).text
         return BeautifulSoup(json.loads(content)['d'], 'lxml').find_all(class_='PanelPost')
+    def downloadAttach(self, attachID, filename):
+        content = r.get(URL_PORTAL_POSTATTACH+'CourseType=1&AttachmentID='+attachID+'&AttachmentFileName='+filename).content
+        self.message['result']=base64.b64encode(content)
+        stdardOut (json.dumps(self.message))
 
 
 start_time = time.time()
@@ -144,11 +149,18 @@ start_time = time.time()
 argv = sys.argv
 
 if len(argv) >= 3:
-    try:
-        crawler = catchNews(argv[1], argv[2])
-        crawler.catch()
-    except Exception,e:
-        print 'error:', e
+    if argv[1] == 'getAttach':
+        try:
+            crawler = catchNews(argv[2], argv[3])
+            crawler.downloadAttach(argv[4], argv[5])
+        except Exception,e:
+            print 'error:', e
+    else:
+        try:
+            crawler = catchNews(argv[1], argv[2])
+            crawler.catch()
+        except Exception,e:
+            print 'error:', e
 
 else:
     print('No action specified.')
