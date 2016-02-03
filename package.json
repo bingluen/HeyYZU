@@ -1,0 +1,26 @@
+{
+  "name": "heyyzu",
+  "version": "2.0.0",
+  "description": "HeyYZU website & API",
+  "main": "server.js",
+  "scripts": {
+    "test": "node server.js",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/erickson-makotoki/HeyYZU_backend.git"
+  },
+  "keywords": [
+    "YZU"
+  ],
+  "author": "Erickson Juang",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/erickson-makotoki/HeyYZU_backend/issues"
+  },
+  "homepage": "https://github.com/erickson-makotoki/HeyYZU_backend#readme",
+  "dependencies": {
+    "express": "^4.13.4"
+  }
+}
