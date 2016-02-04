@@ -34,7 +34,7 @@ app.use('/v2', v2Api);
 webPage.use(function(req, res, next) {
   res.status(404).json({
     status: 404,
-    messages: {'Not Found'}
+    messages: 'Not Found'
   })
 });
 
