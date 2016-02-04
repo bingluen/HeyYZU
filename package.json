@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/erickson-makotoki/HeyYZU_backend#readme",
   "dependencies": {
-    "express": "^4.13.4"
+    "express": "^4.13.4",
+    "letsencrypt-express": "^1.0.6"
   }
 }
