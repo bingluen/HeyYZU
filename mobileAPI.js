@@ -31,7 +31,7 @@ app.use('/v2', v2Api);
 
 // catch 404 and forward to error handler
 // next 疑似是擺好看的，官方文件沒說什麼東東會被傳進來
-webPage.use(function(req, res, next) {
+app.use(function(req, res, next) {
   res.status(404).json({
     status: 404,
     messages: 'Not Found'
