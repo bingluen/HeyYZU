@@ -8,8 +8,8 @@ var bodyParser = require('body-parser');
 var connectMultiparty = require('connect-multiparty');
 
 
-/* Project module */
-//var UserRouter = require(__mobileAPIBase + 'router/user');
+/* router module */
+var v2Api = require(__mobileAPIBase + 'router/v2Api');
 
 /* setting app */
 var app = express();
@@ -24,18 +24,17 @@ app.use(bodyParser.json());
 app.use(connectMultiparty());
 
 /**
- * Setting Router
+ * Version Setting Router
  */
-//app.use('/user', UserRouter);
+app.use('/v2', v2Api);
 
 
 // catch 404 and forward to error handler
 // next 疑似是擺好看的，官方文件沒說什麼東東會被傳進來
-app.use(function(req, res, next) {
-  console.log('request('+req.path+') 404 Not Found from' + req.ip)
+webPage.use(function(req, res, next) {
   res.status(404).json({
     status: 404,
-    mes: 'Not Found'
+    messages: {'Not Found'}
   })
 });
 
