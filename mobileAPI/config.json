@@ -1,0 +1,11 @@
+ {
+   "RSA": {
+     "public": "key/mobileAPI.pub",
+     "private": "key/mobileAPI"
+   },
+   "APN": {
+     "cert": "",
+     "key": "",
+     "passphrase": ""
+   }
+ }

@@ -1,6 +1,6 @@
 /* Setting Path  */
 global.__mobileAPIBase = __dirname + '/mobileAPI/'
-//global.__MobileConfig = require(__mobileAPIBase + 'config.json');
+global.__mobileAPIConfig = require(__mobileAPIBase + 'config.json');
 
 /* Module */
 var express = require('express');
