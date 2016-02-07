@@ -21,7 +21,7 @@ module.exports.student = function(req, res, next) {
     Step 2 check params is exists
    */
   if(!messages.username || !messages.password ||
-    !messages.deviceId || !messages.deviceType) {
+    !messages.deviceId || !messages.deviceInfo) {
     res.status(200).json({
       statusCode: 1101,
       status: 'Params illegal'
@@ -51,5 +51,5 @@ module.exports.student = function(req, res, next) {
       }
     }
   })
-g
+
 }
