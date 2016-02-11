@@ -8,6 +8,6 @@ var loginController = require( __mobileAPIBase + 'controller/v2/loginController'
   Login Router
  */
 router.post('/login/student', loginController.student);
-router.get('/verifyToken/:token', loginController.verifyToken);
+router.post('/verifyToken/', loginController.verifyToken);
 
 module.exports = router;
