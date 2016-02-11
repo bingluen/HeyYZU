@@ -1,8 +1,13 @@
 var express = require('express');
 var router = express.Router();
 
-router.post('/', function(res, req, next) {
-  res.redirect('https://hey.yzu.us');
-});
+/* Controller */
+var loginController = require( __mobileAPIBase + 'controller/v2/loginController');
+
+/*
+  Login Router
+ */
+router.post('/login/student', loginController.student);
+router.post('/verifyToken/', loginController.verifyToken);
 
 module.exports = router;
