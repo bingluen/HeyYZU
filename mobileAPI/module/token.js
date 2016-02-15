@@ -103,6 +103,7 @@ module.exports.verifyToken = function(token, next) {
       var checkCode = crypto.createHash('md5').update( result[0].deviceId + new Date(result[0].mfd + ' GMT+0000').toISOString() + '-ERICKSON-').digest('base64');
 
       next(null, {
+        uid: user_uid,
         isVaild: checkCode === rawCode && (new Date(result[0].exp + ' GMT+0000') > Date.now()),
         exp: new Date(result[0].exp + ' GMT+0000').toISOString(),
         mfd: new Date(result[0].mfd + ' GMT+0000').toISOString()
