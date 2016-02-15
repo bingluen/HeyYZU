@@ -14,6 +14,9 @@ if len(argv) == 4:
     if argv[1] == 'userdata':
         carrier = UserData(argv[2], argv[3])
         carrier.pipeline()
+    if argv[1] == 'courseHistory':
+        carrier = UserData(argv[2], argv[3])
+        carrier.pipeline('courseHistory')
 
     terminal(carrier.messages)
 else:

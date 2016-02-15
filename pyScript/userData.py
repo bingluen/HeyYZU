@@ -17,6 +17,7 @@ portalx_headers = {
 URL_PROFILE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/ClickMenuLog.aspx?type=App_&SysCode=P1'
 URL_IFRAMESUB = 'https://portalx.yzu.edu.tw/PortalSocialVB/IFrameSub.aspx'
 URL_BASICDATA = 'https://portal.yzu.edu.tw/personal/StudentBasic/BasicData.aspx'
+URL_HISTORY = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/ClickMenuLog.aspx?type=App_&SysCode=S1'
 
 
 class UserData(loginPortal):
@@ -25,6 +26,8 @@ class UserData(loginPortal):
             return
         if identity == 'student':
             self.getStudentData()
+        if identity == 'courseHistory':
+            self.getCourseHistory()
 
     def getStudentData(self):
         try:
@@ -54,6 +57,40 @@ class UserData(loginPortal):
             }
             self.messages['status'] = 'get user data successful.'
 
+        except requests.exceptions.ConnectionError:
+            self.messages['statusCode'] = 401
+            self.messages['status'] = 'Cna\'t connect portal server'
+            return
+
+        except requests.exceptions.HTTPError:
+            self.messages['statusCode'] = 402
+            self.messages['status'] = 'HTTP error occure when connect portal server'
+            return
+
+        except requests.exceptions.Timeout:
+            self.messages['statusCode'] = 403
+            self.messages['status'] = 'connect timeout'
+            return
+
+    def getCourseHistory(self):
+        try:
+            trs = BeautifulSoup(self.request.get(URL_HISTORY).text, 'lxml').find('div', id='divDutyCoursePage').find_all('tr')
+            skip = True
+            courseList = []
+            for tds in trs:
+                if skip:
+                    skip = False
+                    continue
+                td = tds.find_all('td')
+                courseList.append({
+                    'year': re.findall('[0-9]{3}', td[0].text, re.S)[0],
+                    'semester': re.findall('[0-9]{1}', td[1].text, re.S)[0],
+                    'code': re.findall('[A-Za-z]{2}[0-9]{3}', td[2].text, re.S)[0],
+                    'class': re.findall('[A-Za-z]{1}[0-9]?', td[3].text, re.S)[0]
+                })
+
+            self.messages['status'] = 'Get course history successful'
+            self.messages['data'] = courseList
         except requests.exceptions.ConnectionError:
             self.messages['statusCode'] = 401
             self.messages['status'] = 'Cna\'t connect portal server'
