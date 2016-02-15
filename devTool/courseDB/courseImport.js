@@ -94,6 +94,87 @@ function importData(next) {
   });
 }
 
-function 
+function processMutipleTeacher() {
+	var checkList = [];
+	var queryStatement = "select deptCode, courseTeacher as teacherName from (select deptCode, courseTeacher, count(deptCode) AS DN from course_temporary_table where length(courseTeacher) > 12 and courseTeacher REGEXP '[^a-zA-Z]' group by courseTeacher, deptCode) as ST group by courseTeacher having max(DN);"
+	var check = function() {
+		var queryStatement = "Create temporary table checkList (name varchar(20));"
+		checkList.forEach(function() {
+			queryStatement += "INSERT INTO checkList SET ?;"
+		})
+		queryStatement += "INSERT INTO teacher (teacherName) SELECT name as teacherName FROM checkList WHERE not exists (SELECT * FROM teacher WHERE teacherName = name);"
+		var listData = checkList.map(cv => ({ name: cv }));
+		var query = dbHelper.query(queryStatement, listData, function(err, result, field) {
+			if (err) { console.error(err) } else {
+				console.log(result[result.length - 1]);
+			}
+		})
+	}
 
-createDatabase(importData());
+	var query = dbHelper.query(queryStatement, null, function(err, result, field) {
+		if (err) { console.error(err) } else {
+			var nameList = result.map((cv) => cv['teacherName'].split('、'));
+
+			nameList.forEach(function(cv) {
+				cv.forEach(function(cv) {
+					if(cv.length > 0 && checkList.indexOf(cv) < 0) {
+						checkList.push(cv);
+					}
+				})
+			})
+
+			check();
+		}
+	})
+}
+
+function setDepartment() {
+	var queryStatement = "select teacherName from teacher where deptCode is NULL;"
+	var setDeptCode = function(teacherList) {
+		var queryStatement = ""
+		teacherList.forEach(function(cv, i, arr) {
+			queryStatement += "UPDATE teacher JOIN (SELECT * FROM (select '"+cv.teacherName+"' as TN, deptCode, count(deptCode) as count From course_temporary_table where courseTeacher LIKE '%"+ cv.teacherName +"%' GROUP by deptCode) AS T Having max(count)) AS T ON teacher.teacherName = T.TN SET teacher.deptCode = T.deptCode;";
+		})
+		var query = dbHelper.query(queryStatement, null, function(err, result, field) {
+			if (err) { console.error(err) } else { console.log(result) }
+		})
+	}
+	var query = dbHelper.query(queryStatement, null, function(err, result, field) {
+		if (err) { console.error(err) } else { setDeptCode(result); }
+	})
+}
+
+function setTeacher() {
+	var queryStatement = "select lesson_id, lessonTeacher from lesson where lessonTeacher LIKE '%、%';";
+	var query = dbHelper.query(queryStatement, null, function(err, result, field){
+		if(err) { console.error(err) } else {
+			var list = result.reduce(function(pv, cv) {
+				var currentList = [];
+				cv.lessonTeacher.split('、').forEach(function(lcv) {
+					currentList.push({
+						lesson_id: cv.lesson_id,
+						lessonTeacher: lcv
+					});
+				})
+				return pv.concat(currentList);
+			}, []);
+			console.log(list);
+			setTeacher(list);
+		}
+	})
+
+	function setTeacher(list) {
+		var queryStatement = 'Create temporary table teacherList (lesson_id int(10) unsigned, lessonTeacher varchar(100));'
+		list.forEach(function() {
+			queryStatement += "INSERT INTO teacherList SET ?;"
+		});
+		queryStatement += "INSERT INTO teach (lesson_id, teacher_id) SELECT teacherList.lesson_id, teacher.teacher_id FROM teacherList join teacher on teacherList.lessonTeacher = teacher.teacherName;"
+		var query = dbHelper.query(queryStatement, list, function(err, result, field){
+			if(err) { console.error(err) } else {
+				console.log(result);
+			}
+		})
+	}
+}
+
+setTeacher();
