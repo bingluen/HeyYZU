@@ -32,11 +32,15 @@ module.exports.updateCourseHistory = function(user, next) {
       queryStatement += "INSERT INTO userCourse SET ?;"
     });
 
+    queryStatement += "DELETE FROM student_lesson Where not exists (SELECT * FROM (select * from userCourse join lesson on courseCode = code and lessonYear = year and lessonSemester = semester and lessonClass = class) as uc WHERE uc.lesson_id = student_lesson.lesson_id and student_lesson.user_uid = ?);"
     queryStatement += "INSERT INTO student_lesson (user_uid, lesson_id) SELECT ? as user_uid, lesson_id FROM (select * from userCourse join lesson on courseCode = code and lessonYear = year and lessonSemester = semester and lessonClass = class) as uc Where not exists (SELECT * FROM student_lesson WHERE student_lesson.user_uid = ? and student_lesson.lesson_id = uc.lesson_id);";
 
-    var query = dbHelper.query(queryStatement, data.concat([user.id, user.id]), function(err, result, field) {
-      if (err) { console.error(err) } else {
-        result.forEach( function(cv) { console.log(cv) });
+    var query = dbHelper.query(queryStatement, data.concat([user.id, user.id, user.id]), function(err, result, field) {
+      if (err) { next(err) } else {
+        next(null, {
+          addRow: result[result.length - 1].affectedRows
+          status:
+        })
       }
     });
   }
