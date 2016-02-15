@@ -38,11 +38,10 @@ module.exports.updateCourseHistory = function(user, next) {
 
     var query = dbHelper.query(queryStatement, data.concat([user.id, user.id, user.id]), function(err, result, field) {
       if (err) { next(err) } else {
-        result.forEach(function(cv) { console.log(cv); })
         next(null, {
           addRow: result[result.length - 1].affectedRows,
           deleteRow: result[result.length - 2].affectedRows
-        })
+        });
       }
     });
   }

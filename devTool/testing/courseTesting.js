@@ -6,5 +6,9 @@ module.exports.courseHistory = function(user) {
     username: 's1010541',
     password: '093388'
   }
-  course.updateCourseHistory(userData);
+  course.updateCourseHistory(userData, function(err, result) {
+    if (err) { console.error(err); return false; } else {
+      console.log(result);
+    }
+  });
 }
