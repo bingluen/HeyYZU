@@ -32,7 +32,7 @@ module.exports.updateCourseHistory = function(user, next) {
       queryStatement += "INSERT INTO userCourse SET ?;"
     });
 
-    queryStatement += "SELECT ?, lesson_id FROM userCourse join lesson on courseCode = code and lessonYear = year and lessonSemester = semeter and lessonClass = class;";
+    queryStatement += "SELECT ?, lesson_id FROM userCourse join lesson on courseCode = code and lessonYear = year and lessonSemester = semester and lessonClass = class;";
 
     var query = dbHelper.query(queryStatement, data.concat([user.id]), function(err, result, field) {
       if (err) { console.error(err) } else {
