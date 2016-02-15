@@ -1,4 +1,10 @@
  {
+   "database": {
+     "host": "localhost",
+     "dbname": "heyyzu_v2",
+     "username": "heyyzu_dev",
+     "password": "5fWDWhsXLQyCDHaz"
+   },
    "RSA": {
      "public": "key/mobileAPI.pub",
      "private": "key/mobileAPI"
