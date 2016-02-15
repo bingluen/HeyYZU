@@ -32,7 +32,7 @@ module.exports.updateCourseHistory = function(user, next) {
       queryStatement += "INSERT INTO userCourse SET ?;"
     });
 
-    queryStatement += "INSERT INTO student_lesson (user_uid, lesson_id) SELECT ? as user_uid, lesson_id FROM userCourse join lesson on courseCode = code and lessonYear = year and lessonSemester = semester and lessonClass = class and not exists (SELECT user_uid, lesson_id FROM student_lesson WHERE student_lesson.user_uid = user_uid and student_lesson.lesson_id = lesson_id);";
+    queryStatement += "INSERT INTO student_lesson (user_uid, lesson_id) SELECT ? as user_uid, lesson_id FROM userCourse join lesson on courseCode = code and lessonYear = year and lessonSemester = semester and lessonClass = class Where not exists (SELECT user_uid, lesson_id FROM student_lesson WHERE student_lesson.user_uid = user_uid and student_lesson.lesson_id = lesson_id);";
 
     var query = dbHelper.query(queryStatement, data.concat([user.id]), function(err, result, field) {
       if (err) { console.error(err) } else {
