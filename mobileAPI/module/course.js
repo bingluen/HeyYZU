@@ -2,6 +2,7 @@ var pyCarriers = require(__mobileAPIBase + 'module/pyCarriers');
 var dbHelper = require( __mobileAPIBase + 'module/dbHelper');
 
 module.exports.updateCourseHistory = function(user, next) {
+  next = next || () => null;
   /* Step 1 get course history */
   pyCarriers({
     args: ['courseHistory', user.username, user.password],
@@ -37,9 +38,10 @@ module.exports.updateCourseHistory = function(user, next) {
 
     var query = dbHelper.query(queryStatement, data.concat([user.id, user.id, user.id]), function(err, result, field) {
       if (err) { next(err) } else {
+        result.forEach(function(cv) { console.log(cv); })
         next(null, {
-          addRow: result[result.length - 1].affectedRows
-          status:
+          addRow: result[result.length - 1].affectedRows,
+          deleteRow: result[result.length - 2].affectedRows
         })
       }
     });
