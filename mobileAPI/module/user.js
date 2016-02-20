@@ -9,7 +9,7 @@ module.exports.updateCourseHistory = function(user, next) {
     scriptFile: 'catalyst.py'
   }, function(r) {
     if(r.statusCode != 200) {
-      res.status(200).json({
+      next({
         statusCode: r.statusCode,
         status: r.status
       });
@@ -39,6 +39,8 @@ module.exports.updateCourseHistory = function(user, next) {
     var query = dbHelper.query(queryStatement, data.concat([user.id, user.id, user.id]), function(err, result, field) {
       if (err) { next(err) } else {
         next(null, {
+          statusCode: 200,
+          status: 'Course history update successful !',
           addRow: result[result.length - 1].affectedRows,
           deleteRow: result[result.length - 2].affectedRows
         });
