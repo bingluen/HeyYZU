@@ -164,6 +164,15 @@ module.exports.student = function(req, res, next) {
 
 
 module.exports.verifyToken = function(req, res, next) {
+  /* step 1 check token column is exists */
+  if (!req.body.token) {
+    res.status(200).json({
+      statusCode: 1101,
+      status: 'token not exists'
+    });
+    return;
+  }
+
   tokenHelper.verifyToken(req.body.token, function(err, result) {
     if (err) {
       console.error((new Date(Date.now())).toISOString(), 'Occure error when verify token.');
