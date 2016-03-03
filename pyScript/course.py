@@ -9,7 +9,8 @@ import json
 URL_FIRST_TO_PAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FPage/FirstToPage.aspx?'
 URL_HOMEWORK_PAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/THom/HomeworkList.aspx?Menu=Hom'
 
-class course(loginPortal):
+
+class Course(loginPortal):
     def pipeline(self, task = None, argSource = None, args = None):
         if self.messages['statusCode'] != 200:
             return
@@ -18,27 +19,38 @@ class course(loginPortal):
             self.messages['status'] = 'Params error: no task assign'
             return
         if task == 'homework':
+            homework = Homework(self.request)
             self.messages['data'] = []
             if argSource == 'inline':
-                self.messages['data'].append(self.getHomeworkList(args))
+                result = homework.getHomeworkList(args)
+                self.messages['data'].append(result['data'])
+                self.messages['statusCode'] = result['statusCode']
+                self.messages['status'] = result['status']
             else:
                 with open(args) as f:
                     courseList = json.loads(f.read())['args']
                 for course in courseList:
-                    self.messages['data'].append(self.getHomeworkList(course))
-
-            self.messages['statusCode'] = 200
-            self.messages['status'] = 'get homewok list successful.'
+                    result = homework.getHomeworkList(args)
+                    self.messages['data'].append(result['data'])
+                    self.messages['statusCode'] = result['statusCode']
+                    self.messages['status'] = result['status']
             return
         else:
             self.messages['statusCode'] = 502
             self.messages['status'] = 'Params error'
+            return
+
+
+class Homework:
+    def __init__(self, requests):
+        self.request = requests
 
     def getHomeworkList(self, args = None):
         if args is None:
-            self.messages['statusCode'] = 502
-            self.messages['status'] = 'Params error: no lesson assign'
-            return
+            return {
+                'statusCode': 502,
+                'status': 'Params error: no lesson assign'
+            }
         self.request.get(URL_FIRST_TO_PAGE + 'y=' + str(args['year']) + '&s=' + str(args['semester']) + '&id=' + args['courseCode'] + '&c=' + args['class'])
         DOM = BeautifulSoup(self.request.get(URL_HOMEWORK_PAGE).text, 'lxml')
         content = DOM.find('table', id='Table1').find_all('tr')
@@ -104,11 +116,15 @@ class course(loginPortal):
                 homeworkItem.clear()
 
         return {
-            'year': args['year'],
-            'semester': args['semester'],
-            'courseCode': args['courseCode'],
-            'class': args['class'],
-            'homework': homeworkList
+            'data': {
+                'year': args['year'],
+                'semester': args['semester'],
+                'courseCode': args['courseCode'],
+                'class': args['class'],
+                'homework': homeworkList
+            },
+            'statusCode': 200,
+            'status': 'get homewok list successful.'
             }
     def parseAttach(self, attach):
         if len(attach.contents) > 0:
