@@ -1,6 +1,6 @@
 from login import loginPortal
 from userData import UserData
-from course import course
+from course import Course
 import sys
 import json
 
@@ -19,7 +19,7 @@ if len(argv) >= 4:
         carrier = UserData(argv[2], argv[3])
         carrier.pipeline('courseHistory')
     if argv[1] == 'course':
-        carrier = course(argv[2], argv[3])
+        carrier = Course(argv[2], argv[3])
         if argv[5] == 'inline':
             carrier.pipeline(argv[4], 'inline', {'year': argv[6], 'semester': argv[7], 'courseCode': argv[8], 'class': argv[9]})
         elif argv[5] == 'infile':
