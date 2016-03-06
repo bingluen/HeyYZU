@@ -42,6 +42,7 @@ class Course(loginPortal):
                 self.messages['statusCode'] = 502
                 self.messages['status'] = 'Params error: no arg source assign'
             return
+
         if task == 'notice':
             notice = Notice(self.request)
             self.messages['data'] = []
@@ -190,7 +191,9 @@ class Notice:
 
         #Page 1
         content = BeautifulSoup(self.request.get(URL_NOTICE_PAGE).text, 'lxml')
+
         posts = content.find_all(class_='PanelPost')
+        print self.parse(posts)
         #pages = self.getPages(content.find(class_='divPageNum'))
         noticelist = noticelist + self.parse(posts)
 
@@ -208,20 +211,24 @@ class Notice:
 
     def parse(self, posts):
         postList = []
+
         for post in posts:
             detail = post.find_all('td')
+
             #if len(re.findall(u'【(教材|作業)】', detail[2].text, re.S)) > 0:
             #if len(re.findall(u'【作業】', detail[2].text, re.S)) > 0:
             #    continue
             postContent = {}
             try:
-                postContent['portalId'] = re.findall('ShowPostGridUnique\(([0-9]+),[0-1]\)' ,detail[1].a['href'], re.S)
+                postContent['portalId'] = re.findall('ShowPostGridUnique\(([0-9]+),[0-1]\)', detail[1].a['href'], re.S)[0]
                 postContent['author'] = post.find('img', class_='imgPostAuthor')['title']
-                postContent['title'] = re.sub(u'【.*】|\([0-9]{4}_[A-Z]{2}[0-9]{3}_[A-Z]\)', '', detail[2].text)
-                postContent['date'] = detail[4].text
+                postContent['title'] = re.sub(u'【.*】|\([0-9]{4}_[A-Z]{2}[0-9]{3}_[A-Z]\)', '', detail[1].text)
+                postContent['date'] = detail[3].text
                 postContent['content'] = self.getNewsContent(postContent['portalId'])
                 postContent['attach'] = self.parseAttach()
                 postList.append(postContent)
+
+
             except Exception,e:
                 print 'error',e
                 #print(post)
@@ -229,20 +236,21 @@ class Notice:
 
     def getNewsContent(self, uid):
         headers = {
-            'content-type': 'application/json',
+            'content-type': 'application/json'
         }
         data = {
             'ParentPostID': uid,
             'pageShow': 0
         }
 
-        content = self.request.post(URL_NOTICE_INNER, data=json.dumps(data), headers=headers)
-        self.newsContent = content
-        return HTMLParser.unescape(BeautifulSoup(json.loads(content)['d'], 'lxml').find('textarea').text)
+        self.newsContent = self.request.post(URL_NOTICE_INNER, data=json.dumps(data), headers=headers).json()["d"]
+
+        text = BeautifulSoup(self.newsContent, 'lxml').find('textarea').text
+        return text
 
     def parseAttach(self):
-        if BeautifulSoup(json.loads(self.newsContent)['d'], 'lxml').find('tr').find('a').img is not None:
-            url = BeautifulSoup(json.loads(self.newsContent)['d'], 'lxml').find('tr').find('a')['href']
+        if BeautifulSoup(self.newsContent, 'lxml').find('tr').find('a').img is not None:
+            url = BeautifulSoup(self.newsContent, 'lxml').find('tr').find('a')['href']
             return {
                 'CourseType': re.findall('CourseType=([0-9])', url, re.S)[0],
                 'AttachmentID': re.findall('AttachmentID=([0-9]+)', url, re.S)[0],
