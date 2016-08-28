@@ -1,0 +1,14 @@
+ {
+   "v2": {
+     "database": {
+       "host": "localhost",
+       "dbname": "",
+       "username": "",
+       "password": ""
+     },
+     "RSA": {
+       "public": "",
+       "private": ""
+     }
+   }
+ }

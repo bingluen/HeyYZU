@@ -1,0 +1,8 @@
+{
+  "devMode": false,
+  "ssl": {
+    "configDir": "/etc/letsencrypt",
+    "domains": ["hey.yzu.us", "heyyzu.bingluen.tw"],
+    "email": "a820224@gmail.com"
+  }
+}
