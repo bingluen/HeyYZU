@@ -11,6 +11,7 @@ var connectMultiparty = require('connect-multiparty');
 
 /* router module */
 var v2Api = require(__mobileAPIBase + 'router/v2Api');
+var v3Api = require(__mobileAPIBase + 'router/v3Api')
 
 /* setting webService */
 var webService = express();
@@ -29,6 +30,7 @@ webService.use(connectMultiparty());
  * API Version Setting Router
  */
 webService.use('/v2', v2Api);
+webService.use('/v3', v3Api);
 
 /* setting router */
 webService.use('/', express.static( __WebPageBase + 'public'));
