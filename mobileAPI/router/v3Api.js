@@ -1,12 +1,20 @@
 var express = require('express');
 var router = express.Router();
 
-var loginController = require(__mobileAPIBase + 'controller/v3/loginController');
-var tokenController = require(__mobileAPIBase + 'controller/v3/tokenController');
-var courseController = require(__mobileAPIBase + 'controller/v3/courseController');
-var libraryController = require(__mobileAPIBase + 'controller/v3/libraryController');
-var userController = require(__mobileAPIBase + 'controller/v3/userController');
-var calendarController = require(__mobileAPIBase + 'controller/v3/calendarController');
+const systemController = require(__mobileAPIBase + 'controller/v3/systemController');
+const loginController = require(__mobileAPIBase + 'controller/v3/loginController');
+const tokenController = require(__mobileAPIBase + 'controller/v3/tokenController');
+const courseController = require(__mobileAPIBase + 'controller/v3/courseController');
+const libraryController = require(__mobileAPIBase + 'controller/v3/libraryController');
+const userController = require(__mobileAPIBase + 'controller/v3/userController');
+const calendarController = require(__mobileAPIBase + 'controller/v3/calendarController');
+
+/**
+ * System status
+ */
+router.get('/status', systemController.status);
+router.get('/status/iOS', systemController.iOS);
+router.get('/status/android', systemController.android);
 
 /**
  * Login router
