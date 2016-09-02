@@ -8,7 +8,7 @@ const CrawlerException = require('./CrawlerException');
 const PORTAL_LOGIN = "https://portalx.yzu.edu.tw/PortalSocialVB/Login.aspx"
 
 module.exports = (username, password) => {
-  let getLoginPage = new Promise((reslove, reject) => {
+  let getLoginPage = new Promise((resolve, reject) => {
     let dataStream = "";
     request
       .get(PORTAL_LOGIN)
@@ -18,7 +18,7 @@ module.exports = (username, password) => {
             dataStream += chunk;
           })
           .on('end', () => {
-            reslove(dataStream)
+            resolve(dataStream)
           })
         ;
       })
@@ -38,7 +38,7 @@ module.exports = (username, password) => {
   };
 
   let doLogin = (params) => {
-    return new Promise((reslove, reject) => {
+    return new Promise((resolve, reject) => {
       let dataStream = "";
       request
         .post(PORTAL_LOGIN)
@@ -56,7 +56,7 @@ module.exports = (username, password) => {
               dataStream += data;
             })
             .on('end', () => {
-              reslove(dataStream);
+              resolve(dataStream);
             })
         })
     })
@@ -71,14 +71,14 @@ module.exports = (username, password) => {
   };
 
   return getLoginPage
-    .then((resloveTask) => {
-      return parseParams(resloveTask);
+    .then((resolveTask) => {
+      return parseParams(resolveTask);
     })
-    .then((resloveTask) => {
-      return doLogin(resloveTask);
+    .then((resolveTask) => {
+      return doLogin(resolveTask);
     })
-    .then((resloveTask) => {
-      return checkLoginResult(resloveTask);
+    .then((resolveTask) => {
+      return checkLoginResult(resolveTask);
     },
     (rejectTask) => {
       throw CrawlerException(rejectTask);
