@@ -27,6 +27,16 @@ webService.use(bodyParser.json());
 webService.use(connectMultiparty());
 
 /**
+ * Debug mode for APP client
+ */
+webService.use('/v3', (req, res, next) => {
+  if (req.query.debug == "true") {
+    req.debug = req.body;
+  }
+  next();
+})
+
+/**
  * API Version Setting Router
  */
 webService.use('/v2', v2Api);
@@ -34,7 +44,6 @@ webService.use('/v3', v3Api);
 
 /* setting router */
 webService.use('/', express.static( __WebPageBase + 'public'));
-
 
 /**
  * Handle Unexpected error
