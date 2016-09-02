@@ -64,10 +64,14 @@ module.exports = (username, password) => {
 
   let checkLoginResult = (dom) => {
     let successRegex = /window[.]location='[.][/]FMain[/]DefaultPage[.]aspx/
-    return {
-      isLogged: successRegex.test(dom),
-      cookie: cookie
+    if (successRegex.test(dom)) {
+      return {
+        cookie: cookie
+      }
+    } else {
+      throw CrawlerException(rejectTask);
     }
+
   };
 
   return getLoginPage

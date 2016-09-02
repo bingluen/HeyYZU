@@ -11,6 +11,7 @@ var pubRSA = ursa.createPublicKey(publicKey);
 function RsaException(statusCode, status) {
   this.statusCode = statusCode;
   this.status = status;
+  this.error = "The ras key or algorithm not match.";
 }
 
 module.exports.pubEncrypt = function(str) {
@@ -44,3 +45,5 @@ module.exports.priDecrypt = function(hash) {
     throw new RsaException(1104, "Fail to decrypt.")
   }
 }
+
+module.exports.RsaException = RsaException;
