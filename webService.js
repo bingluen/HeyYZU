@@ -31,7 +31,11 @@ webService.use(connectMultiparty());
  */
 webService.use('/v3', (req, res, next) => {
   if (req.query.debug == "true") {
-    req.debug = req.body;
+    req.debug = {
+      body: req.body,
+      query: req.query,
+      params: req.params
+    }
   }
   next();
 })
