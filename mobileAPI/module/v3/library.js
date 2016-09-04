@@ -25,7 +25,7 @@ module.exports = {
       throw new LibraryException(KEY_TYPE_ERROR);
     }
 
-    let doSearch = new Promise((resolve, reject) => {
+    let doSearch = new Promise((resolve) => {
       let dataStream = ""
       request
         .get(SEARCH_API + keyType + '=' + encodeURI(key))
@@ -40,7 +40,9 @@ module.exports = {
           ;
         })
         .on('error', (error) => {
-          reject(error);
+          let err = REQUEST_ERROR;
+          err.error = error.toString();
+          throw new LibraryException(err);
         })
       ;
     });
