@@ -41,7 +41,7 @@ router.get('/course/attachments/:id', courseController.getAttachment);
  * Library Router
  */
 router.get('/library/search', libraryController.doSearch);
-router.get('/library/bookinfo', libraryController.getBookInfo);
+router.get('/library/bookinfo/:bibliosno', libraryController.getBookInfo);
 router.get('/library/loanRecord/:type', libraryController.getLoanRecord);
 router.get('/library/collection', libraryController.getCollection);
 router.post('/library/collection', libraryController.add2Collection);

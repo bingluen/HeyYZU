@@ -42,17 +42,35 @@ module.exports = {
             statusCode: rejectTask.statusCode,
             status: rejectTask.status,
             error: rejectTask.error,
-            debug: req.debug,
+            debug: req.debug
           });
         }
       )
+    ;
 
   },
   getBookInfo: (req, res, next) => {
-    res.status(404).json({
-      statusCode: 404,
-      status: "Not found."
-    });
+    libraryModel
+      .bookInfo(getProp(req.params, "bibliosno"))
+      .then(
+        (resolveTask) => {
+          res.status(200).json({
+            statusCode: 200,
+            status: "successful.",
+            data: resolveTask,
+            debug: req.debug
+          });
+        },
+        (rejectTask) => {
+          res.status(rejectTask.httpStatus).json({
+            statusCode: rejectTask.statusCode,
+            status: rejectTask.status,
+            error: rejectTask.error,
+            debug: req.debug
+          });
+        }
+      )
+    ;
   },
   getLoanRecord: (req, res, next) => {
     res.status(404).json({
