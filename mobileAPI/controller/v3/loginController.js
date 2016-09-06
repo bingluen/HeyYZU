@@ -70,6 +70,8 @@ module.exports = {
 
     verifyUser.then(
       (resloveTask) => {
+        res.set('Cache-Control', 'no-store');
+        res.set('Pragma', 'no-cache');
         res.status(200).json({
           statusCode: 200,
           status: "Successful.",
