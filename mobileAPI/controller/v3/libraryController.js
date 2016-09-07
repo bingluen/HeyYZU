@@ -30,12 +30,14 @@ module.exports = {
       .search(key.type, key.keyword)
       .then(
         (resolveTask) => {
-          res.status(200).json({
-            statusCode: 200,
-            status: "successful.",
-            data: resolveTask,
-            debug: req.debug,
-          });
+          if (req.debug) {
+            res.status(200).json({
+              data: resolveTask,
+              debug: req.debug
+            });
+          } else {
+            res.status(200).json(resolveTask);
+          }
         },
         (rejectTask) => {
           res.status(rejectTask.httpStatus).json({
@@ -54,12 +56,14 @@ module.exports = {
       .bookInfo(getProp(req.params, "bibliosno"))
       .then(
         (resolveTask) => {
-          res.status(200).json({
-            statusCode: 200,
-            status: "successful.",
-            data: resolveTask,
-            debug: req.debug
-          });
+          if (req.debug) {
+            res.status(200).json({
+              data: resolveTask,
+              debug: req.debug
+            });
+          } else {
+            res.status(200).json(resolveTask);
+          }
         },
         (rejectTask) => {
           res.status(rejectTask.httpStatus).json({
