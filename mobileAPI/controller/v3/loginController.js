@@ -1,6 +1,8 @@
 "use strict"
 
 const rsaModule = require(__mobileAPIBase + 'module/v3/rsa');
+const tokenModule = require(__mobileAPIBase + 'module/v3/token');
+const userModule = require(__mobileAPIBase + 'module/v3/user');
 const RsaException = rsaModule.RsaException;
 const crawler = require(__mobileAPIBase + 'module/v3/crawler');
 
@@ -25,7 +27,8 @@ module.exports = {
     // try to decrypt messages
     var messages;
     try {
-      messages = rsaModule.priDecrypt(req.body.messages)
+      messages = rsaModule.priDecrypt(req.body.messages);
+      req.debug.decode = messages;
     } catch (e) {
       let resMes = e;
       resMes.debug = req.debug;
@@ -35,10 +38,12 @@ module.exports = {
 
     // try parse JSON string
     try {
-      messages = JSON.parse(messages)
+      messages = JSON.parse(messages);
+      req.debug.decode = messages;
     } catch (e) {
       let resMes = e;
       resMes.debug = req.debug;
+      resMes.debug.body.decode = messages
       res.status(400).json(resMes);
       return;
     }
@@ -48,41 +53,63 @@ module.exports = {
     try {
       userData.username = getProp(messages, "username");
       userData.password = getProp(messages, "password");
+      userData.MACAddress = getProp(messages, "MACAddress");
     } catch (e) {
-      if (e instanceof RsaException) {
-        let resMes = e;
-        resMes.debug = req.debug;
-        res.status(400).json(resMes);
-        return;
-      } else if (e instanceof ReferenceError) {
-        res.status(400).json({
-          statusCode: 1101,
-          status: "Params illegal.",
-          error: e.toString().replace("ReferenceError: ", ""),
-          debug: req.debug
-        });
-        return;
-      }
+      req.debug.body.decode = messages
+      res.status(400).json({
+        statusCode: 1101,
+        status: "Params illegal.",
+        error: e.toString().replace("ReferenceError: ", ""),
+        debug: req.debug
+      });
+      return;
     }
 
     // verify user
     let verifyUser = crawler.verifyPortalAccount(userData.username, userData.password);
 
-    verifyUser.then(
-      (resloveTask) => {
-        res.set('Cache-Control', 'no-store');
-        res.set('Pragma', 'no-cache');
-        res.status(200).json({
-          statusCode: 200,
-          status: "Successful.",
-          debug: req.debug
-        });
-      },
-      (rejectTask) => {
-        let resMes = rejectTask;
-        resMes.debug = req.debug;
-        res.status(500).json(resMes);
-      }
-    );
+    verifyUser
+      .then(() => userModule.find(userData.username))
+      .then((result) => {
+        if (result) {
+          return userModule.updatePw(result.uid, rsaModule.pubEncrypt(userData.password))
+            .then(() => tokenModule.create(result.uid, userData.MACAddress));
+        } else {
+          return userModule.create({
+            username: userData.username,
+            password: rsaModule.pubEncrypt(userData.password)
+          })
+          .then((uid) => tokenModule.create(uid, userData.MACAddress))
+        }
+      })
+      .then(
+        (resolveTask) => {
+          res.set('Cache-Control', 'no-store');
+          res.set('Pragma', 'no-cache');
+          res.status(200).json({
+            token: resolveTask.token,
+            expire_in: resolveTask.expire_in,
+            debug: req.debug
+          });
+        },
+        (rejectTask) => {
+          console.log("rejectTask", rejectTask);
+          let resMes = rejectTask;
+          resMes.debug = req.debug;
+          res.status(500).json(resMes);
+        }
+      );
+  },
+  logout: (req, res, next) => {
+    res.status(404).json({
+      statusCode: 404,
+      status: "Not found."
+    });
+  },
+  logoutAll: (req, res, next) => {
+    res.status(404).json({
+      statusCode: 404,
+      status: "Not found."
+    });
   }
 }
