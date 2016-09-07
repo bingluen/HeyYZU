@@ -27,7 +27,9 @@ module.exports = {
     ];
 
     if (legalKey.indexOf(keyType) < 0) {
-      throw new LibraryException(KEY_TYPE_ERROR);
+      return new Promise((reslove) => {
+        throw new LibraryException(KEY_TYPE_ERROR);
+      });
     }
 
     let doSearch = new Promise((resolve) => {
@@ -80,7 +82,9 @@ module.exports = {
   },
   bookInfo: (bibliosno) => {
     if(Number.isInteger(bibliosno)) {
-      throw new LibraryException(BIBLIOSNO_TYPE_ERROR);
+      return new Promise((reslove) => {
+        throw new LibraryException(BIBLIOSNO_TYPE_ERROR);
+      });
     }
 
     let getBookInfo = new Promise((resolve) => {
