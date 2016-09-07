@@ -21,6 +21,8 @@ router.get('/status/android', systemController.android);
  */
 
 router.post('/login', loginController.student);
+router.delete('/logout', loginController.logout);
+router.delete('/logoutAll', loginController.logoutAll);
 
 /**
  * Token router
