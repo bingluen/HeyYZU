@@ -10,7 +10,6 @@ const bodyParser = require('body-parser');
 const connectMultiparty = require('connect-multiparty');
 
 /* router module */
-const v2Api = require(__mobileAPIBase + 'router/v2Api');
 const v3Api = require(__mobileAPIBase + 'router/v3Api')
 
 /* setting APIService */
@@ -27,9 +26,22 @@ APIService.use(bodyParser.json());
 APIService.use(connectMultiparty());
 
 /**
+ * Debug mode for APP client
+ */
+APIService.use('/v3', (req, res, next) => {
+  if (req.query.debug == "true") {
+    req.debug = {
+      body: req.body,
+      query: req.query,
+      params: req.params
+    }
+  }
+  next();
+});
+
+/**
  * API Version Setting Router
  */
-APIService.use('/v2', v2Api);
 APIService.use('/v3', v3Api);
 
 /**
