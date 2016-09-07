@@ -69,7 +69,7 @@ module.exports = (username, password) => {
         cookie: cookie
       }
     } else {
-      throw CrawlerException(rejectTask);
+      throw CrawlerException("LoginFailed");
     }
 
   };

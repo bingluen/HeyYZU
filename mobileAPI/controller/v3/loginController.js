@@ -28,7 +28,6 @@ module.exports = {
     var messages;
     try {
       messages = rsaModule.priDecrypt(req.body.messages);
-      req.debug.decode = messages;
     } catch (e) {
       let resMes = e;
       resMes.debug = req.debug;
@@ -39,7 +38,6 @@ module.exports = {
     // try parse JSON string
     try {
       messages = JSON.parse(messages);
-      req.debug.decode = messages;
     } catch (e) {
       let resMes = e;
       resMes.debug = req.debug;
