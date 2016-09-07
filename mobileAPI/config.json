@@ -1,7 +1,7 @@
  {
-   "v2": {
+   "v3": {
      "database": {
-       "host": "localhost",
+       "host": "",
        "dbname": "",
        "username": "",
        "password": ""
