@@ -8,6 +8,7 @@ const courseController = require(__mobileAPIBase + 'controller/v3/courseControll
 const libraryController = require(__mobileAPIBase + 'controller/v3/libraryController');
 const userController = require(__mobileAPIBase + 'controller/v3/userController');
 const calendarController = require(__mobileAPIBase + 'controller/v3/calendarController');
+const eventController = require(__mobileAPIBase + 'controller/v3/eventController');
 
 /**
  * System status
