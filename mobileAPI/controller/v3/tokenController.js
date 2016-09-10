@@ -6,7 +6,7 @@ module.exports = {
       tokenModule.verify(req.body.token)
         .then((result) => {
           res.status(200).json({
-            isVaild: result
+            isValid: result
           });
         }, (rejectTask) => {
           let resMes = rejectTask;
