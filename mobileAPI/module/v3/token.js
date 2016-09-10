@@ -6,9 +6,9 @@ const dbModule = require(__mobileAPIBase + 'module/v3/db');
 
 module.exports = {
   verify: (token) => {
-    let deRsa = rsaModule.priDecrypt(token);
-    let md5Text = deRsa.replace(/-CHUANGBINGLUEN-|-MAKOTOKI-/g, '');
     return new Promise((resolve, reject) => {
+      let deRsa = rsaModule.priDecrypt(token);
+      let md5Text = deRsa.replace(/-CHUANGBINGLUEN-|-MAKOTOKI-/g, '');
       let query = dbModule.query(
         "SELECT 1 FROM device WHERE addtime(mfd, 10000) >= now() AND md5(concat( "
         + "left(HEX(MACAddress), 2), ':', "
