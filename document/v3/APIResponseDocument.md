@@ -58,6 +58,7 @@ API 回應分為 Http response status Code 以及 json 內的 statusCode 兩部�
 + 1301 校方Server 連線錯誤
 + 1302 校方Server Http錯誤
 + 1303 校方Server Timeout
++ 1304 校方Server HTTP 500
 
 
 # Server 內部錯誤代碼 (2000 series & 3000 series)
@@ -78,6 +79,8 @@ API 回應分為 Http response status Code 以及 json 內的 statusCode 兩部�
 + 2202 資料誤查詢錯誤
 
 ## Library Model (2300 series)
+
++ 2301 key type 不正確
 
 ## Python Model (3000 series)
 
