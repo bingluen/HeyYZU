@@ -63,5 +63,10 @@ router.get('/user/device', userController.getDevices);
 router.post('/calendar/list', calendarController.list);
 router.get('/calendar/tags', calendarController.getTags);
 
+/**
+ * Event
+ */
+router.get('/event/list', eventController.list);
+
 
 module.exports = router;
