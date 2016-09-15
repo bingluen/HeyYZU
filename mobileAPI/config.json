@@ -1,14 +1,13 @@
  {
-   "v3": {
-     "database": {
-       "host": "",
-       "dbname": "",
-       "username": "",
-       "password": ""
-     },
-     "RSA": {
-       "public": "",
-       "private": ""
-     }
-   }
+   "database": {
+     "host": "",
+     "dbname": "",
+     "username": "",
+     "password": ""
+   },
+   "RSA": {
+     "public": "",
+     "private": ""
+   },
+   "FCM_key": ""
  }

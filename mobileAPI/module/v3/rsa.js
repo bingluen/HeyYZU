@@ -1,8 +1,8 @@
 var ursa = require('ursa');
 var fs = require('fs-extra');
 
-var privateKey = fs.readFileSync(__mobileAPIBase + __mobileAPIConfig.v3.RSA.private);
-var publicKey = fs.readFileSync(__mobileAPIBase + __mobileAPIConfig.v3.RSA.public);
+var privateKey = fs.readFileSync(__mobileAPIBase + __mobileAPIConfig.RSA.private);
+var publicKey = fs.readFileSync(__mobileAPIBase + __mobileAPIConfig.RSA.public);
 
 var priRSA = ursa.createPrivateKey(privateKey);
 var pubRSA = ursa.createPublicKey(publicKey);

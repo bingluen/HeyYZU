@@ -15,10 +15,10 @@ function QueryException(obj) {
 
 module.exports.query = (query, params, cb) => {
 	var database = mysql.createConnection({
-		host: __mobileAPIConfig.v3.database.host,
-		user: __mobileAPIConfig.v3.database.username,
-		password: __mobileAPIConfig.v3.database.password,
-		database: __mobileAPIConfig.v3.database.dbname,
+		host: __mobileAPIConfig.database.host,
+		user: __mobileAPIConfig.database.username,
+		password: __mobileAPIConfig.database.password,
+		database: __mobileAPIConfig.database.dbname,
 		multipleStatements: true,
 		timezone: '0000'
 	});
