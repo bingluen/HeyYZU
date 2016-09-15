@@ -1,0 +1,12 @@
+ {
+   "database": {
+     "host": "",
+     "dbname": "",
+     "username": "",
+     "password": ""
+   },
+   "RSA": {
+     "public": "",
+     "private": ""
+   }
+ }
