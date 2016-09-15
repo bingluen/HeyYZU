@@ -26,6 +26,7 @@
     "connect-multiparty": "^2.0.0",
     "crypto": "0.0.3",
     "express": "^4.13.4",
+    "fcm-node": "^1.0.14",
     "fs-extra": "^0.26.5",
     "mime-types": "^2.1.10",
     "mysql": "^2.11.1",
