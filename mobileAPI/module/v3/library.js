@@ -130,6 +130,7 @@ module.exports = {
               if (type == 'book' && (r.MaterialType == '圖書' || r.MaterialType == '附件')) {
                 pv.push({
                   callNum: r.Callno,
+                  type: r.MaterialType,
                   status: r.ShowStatus,
                   position: r.SublibraryC,
                   collection: r.CollectionC,
