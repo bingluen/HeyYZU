@@ -120,7 +120,7 @@ module.exports = {
           }
 
           // ajdust structure
-          resolveTask.map((r) => {
+          resolveTask = resolveTask.map((r) => {
             if (r.ColumnType && r.ColumnType == 'B') {
               return {
                 columnType: 1,
