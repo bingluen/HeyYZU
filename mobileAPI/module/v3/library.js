@@ -127,7 +127,7 @@ module.exports = {
           // ajdust structure
           resolveTask = resolveTask.reduce((pv, r) => {
             if (r.ColumnType && r.ColumnType == 'B') {
-              if (type == 'book' && r.MaterialType == '圖書') {
+              if (type == 'book' && (r.MaterialType == '圖書' || r.MaterialType == '附件')) {
                 pv.push({
                   callNum: r.Callno,
                   status: r.ShowStatus,
@@ -139,7 +139,7 @@ module.exports = {
                   cover: r.Cover,
                   ISBN: parseInt(r.ISBN.replace(/[^0-9]/g, ''), 10) || -1,
                 })
-              } else if (type == 'media' && r.MaterialType != '圖書') {
+              } else if (type == 'media' && r.MaterialType != '圖書' && r.MaterialType != '附件') {
                 pv.push({
                   callNum: r.Callno,
                   type: r.MaterialType,
