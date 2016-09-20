@@ -27,7 +27,7 @@ module.exports = {
     ];
 
     if (legalKey.indexOf(keyType) < 0) {
-      return new Promise((reslove) => {
+      return new Promise((resolve) => {
         throw new LibraryException(KEY_TYPE_ERROR);
       });
     }
@@ -54,6 +54,7 @@ module.exports = {
       ;
     });
 
+
     return doSearch
       .then((resolveTask) => {
         // re-parse
@@ -62,6 +63,10 @@ module.exports = {
         } catch (e) {
           throw new LibraryException(REQUEST_INTENRAL_ERROR);
         }
+
+        let bookRegex = /圖書/;
+        let periodicalRegex = /期刊/;
+        let ebookRegex = /電子書/
         // adjust structure
         resolveTask = resolveTask.map((cv) => ({
           bibliosno: cv.bibliosno,
@@ -69,7 +74,7 @@ module.exports = {
           author: cv.author,
           publishYear: parseInt(cv.publish_YY.replace(/[^0-9]/g, ''), 10) || -1,
           callNo: cv.ccl.replace(/<br>| /g, ''),
-          type: cv.material_type,
+          type: cv.material_type.match(bookRegex) ? 'book' : cv.material_type.match(periodicalRegex) ? 'periodical' : cv.material_type.match(ebookRegex) ? 'ebook' : 'media',
           ISBN: parseInt(cv.ISBN.replace(/[^0-9]/g, ''), 10) || -1,
           ISSN: parseInt(cv.ISSN.replace(/[^0-9]/g, ''), 10) || -1,
           cover: cv.Cover,
@@ -80,9 +85,9 @@ module.exports = {
       })
       ;
   },
-  bookInfo: (bibliosno) => {
+  bookInfo: (bibliosno, type) => {
     if(Number.isInteger(bibliosno)) {
-      return new Promise((reslove) => {
+      return new Promise((resolve) => {
         throw new LibraryException(BIBLIOSNO_TYPE_ERROR);
       });
     }
@@ -120,61 +125,63 @@ module.exports = {
           }
 
           // ajdust structure
-          resolveTask = resolveTask.map((r) => {
+          resolveTask = resolveTask.reduce((pv, r) => {
             if (r.ColumnType && r.ColumnType == 'B') {
-              return {
-                columnType: 1,
-                callNum: r.Callno,
-                type: r.MaterialType,
-                status: r.ShowStatus,
-                position: r.SublibraryC,
-                collection: r.CollectionC,
-                info: {
+              if (type == 'book' && r.MaterialType == '圖書') {
+                pv.push({
+                  callNum: r.Callno,
+                  status: r.ShowStatus,
+                  position: r.SublibraryC,
+                  collection: r.CollectionC,
                   dueDate: r.RealDueDate,
-                  requestPeople: r.RequestCount
-                },
-                publisher: r.Publish.replace(/(<([^>]+)>)/ig, ""),
-                cover: r.Cover,
-                ISBN: parseInt(r.ISBN.replace(/[^0-9]/g, ''), 10) || -1,
-                ISSN: parseInt(r.ISSN.replace(/[^0-9]/g, ''), 10) || -1
+                  requestPeople: r.RequestCount,
+                  publisher: r.Publish.replace(/(<([^>]+)>)/ig, ""),
+                  cover: r.Cover,
+                  ISBN: parseInt(r.ISBN.replace(/[^0-9]/g, ''), 10) || -1,
+                })
+              } else if (type == 'media') {
+                pv.push({
+                  callNum: r.Callno,
+                  type: r.MaterialType,
+                  status: r.ShowStatus,
+                  position: r.SublibraryC,
+                  collection: r.CollectionC,
+                  dueDate: r.RealDueDate,
+                  requestPeople: r.RequestCount,
+                  publisher: r.Publish.replace(/(<([^>]+)>)/ig, ""),
+                  cover: r.Cover,
+                })
               }
-            } else if (r.ColumnType && r.ColumnType == 'S') {
-              return {
-                columnType: 2,
+
+            } else if (type == 'periodical' && r.ColumnType && r.ColumnType == 'S') {
+              pv.push({
                 callNum: r.CallNo,
                 type: r.MaterialTypeC,
                 status: r.StatusC,
                 position: r.sublibraryC,
                 collection: r.CollectionC,
-                info: {
-                  vol: r.volumn,
-                  publishDate: r.IssueDate
-                },
+                vol: r.volumn,
+                publishDate: r.IssueDate,
                 publisher: r.Publish.replace(/(<([^>]+)>)/ig, ""),
                 cover: r.Cover,
-                ISBN: parseInt(r.ISBN.replace(/[^0-9]/g, ''), 10) || -1,
                 ISSN: parseInt(r.ISSN.replace(/[^0-9]/g, ''), 10) || -1
-              }
-            } else if (r.ColumnType && r.ColumnType == 'V') {
-              return {
-                columnType: 3,
-                callNum: null,
+              });
+            } else if (type == 'media' && r.ColumnType && r.ColumnType == 'V') {
+              pv.push({
                 type: r.AVMaterialType,
-                status: null,
-                position: null,
-                collection: null,
-                info: {
-                  publishDate: r.dateStr
-                },
+                publishDate: r.dateStr,
                 publisher: r.Publish.replace(/(<([^>]+)>)/ig, ""),
                 cover: r.Cover,
-                ISBN: parseInt(r.ISBN.replace(/[^0-9]/g, ''), 10) || -1,
-                ISSN: parseInt(r.ISSN.replace(/[^0-9]/g, ''), 10) || -1
-              }
+              });
             } else if (r.ColumnType && r.ColumnType == 'N') {
               throw new LibraryException(NOT_FOUND_BOOK);
             }
-          })
+            return pv;
+          }, [])
+
+          if (resolveTask.length == 0) {
+            throw new LibraryException(NOT_FOUND_BOOK);
+          }
 
           return resolveTask;
         }

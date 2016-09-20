@@ -52,8 +52,13 @@ module.exports = {
 
   },
   getBookInfo: (req, res, next) => {
+    let legalMediaType = ['book', 'periodical', 'media'];
+    if (!req.params.mediaType || legalMediaType.indexOf(req.params.mediaType) < 0) {
+      next();
+      return;
+    }
     libraryModel
-      .bookInfo(getProp(req.params, "bibliosno"))
+      .bookInfo(getProp(req.params, "bibliosno"), req.params.mediaType)
       .then(
         (resolveTask) => {
           if (req.debug) {
