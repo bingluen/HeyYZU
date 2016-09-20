@@ -139,7 +139,7 @@ module.exports = {
                   cover: r.Cover,
                   ISBN: parseInt(r.ISBN.replace(/[^0-9]/g, ''), 10) || -1,
                 })
-              } else if (type == 'media') {
+              } else if (type == 'media' && r.MaterialType != '圖書') {
                 pv.push({
                   callNum: r.Callno,
                   type: r.MaterialType,
