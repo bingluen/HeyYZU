@@ -1,19 +1,23 @@
 "use strict"
-const tokenModule = require(__mobileAPIBase + 'module/v3/token');
+
+const v2Referrals = require(__mobileAPIBase + 'module/v3/v2Referrals');
 
 module.exports = {
     verify: (req, res, next) => {
-      tokenModule.verify(req.body.token)
-        .then((result) => {
-          res.status(200).json({
-            isValid: result
-          });
-        }, (rejectTask) => {
-          let resMes = rejectTask;
-          resMes.debug = req.debug;
-          res.status(500).json(resMes);
+      v2Referrals.tokenVerify({token: req.body.token})
+        .then((resolve) => {
+          if (resolve.httpStatus === 200) {
+            res.status(200).json({
+              isValid: resolve.isVaild,
+              debug: req.debug
+            });
+          } else {
+            res.status(resolve.httpStatus).json({
+              statusCode: resolve.statusCode,
+              status: resolve.status
+            });
+          }
         })
-      ;
     },
     refresh: (req, res, next) => {
       res.status(404).json({
