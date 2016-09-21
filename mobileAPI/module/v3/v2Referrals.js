@@ -28,7 +28,7 @@ function v2Poster(path, formData) {
     let dataStream = ""
     request
       .post(rootURI + path)
-      .form(formData)
+      .json(formData)
       .on('response', (response) => {
         let httpStatus = response.statusCode;
         response
@@ -77,9 +77,6 @@ module.exports = {
   },
   courseHomework: (data) => {
     return v2Poster('/v2/course/homework', data);
-  },
-  courseAttachments: (attachmentId) => {
-    return v2Getter('/v2/course/attachments/' + attachmentId);
   },
   courseNotice: (data) => {
     return v2Poster('/v2/course/notice', data);
