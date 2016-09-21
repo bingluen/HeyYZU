@@ -16,10 +16,17 @@ module.exports = {
       });
   },
   refreshCourse: (req, res, next) => {
-    res.status(404).json({
-      statusCode: 404,
-      status: "Not found."
-    });
+    v2Referrals.userRefreshCourse(req.body)
+      .then((resolve) => {
+        if (resolve.httpStatus === 200) {
+          res.status(200).json({msg: resolve.status});
+        } else {
+          res.status(resolve.httpStatus).json({
+            statusCode: resolve.statusCode,
+            status: resolve.status
+          });
+        }
+      });
   },
   refreshDeviceToken: (req, res, next) => {
     res.status(404).json({
