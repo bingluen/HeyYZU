@@ -1,10 +1,8 @@
 "use strict"
 
 const rsaModule = require(__mobileAPIBase + 'module/v3/rsa');
-const tokenModule = require(__mobileAPIBase + 'module/v3/token');
-const userModule = require(__mobileAPIBase + 'module/v3/user');
 const RsaException = rsaModule.RsaException;
-const crawler = require(__mobileAPIBase + 'module/v3/crawler');
+const v2Referrals = require(__mobileAPIBase + 'module/v3/v2Referrals');
 
 function getProp(obj, prop) {
   if (obj.hasOwnProperty(prop)) return obj[prop];
@@ -63,40 +61,41 @@ module.exports = {
       return;
     }
 
-    // verify user
-    let verifyUser = crawler.verifyPortalAccount(userData.username, userData.password);
+    // re-package data for v2 api
+    let dataPackage = {
+      username: userData.username,
+      password: userData.password,
+      deviceMAC: userData.MACAddress,
+      deviceId: "fake deviceId - FCM not enable",
+      deviceInfo: {
+        os: "Android",
+        osVer: "6.0",
+        device: "Fake device - no info"
+      }
+    };
 
-    verifyUser
-      .then(() => userModule.find(userData.username))
-      .then((result) => {
-        if (result) {
-          return userModule.updatePw(result.uid, rsaModule.pubEncrypt(userData.password))
-            .then(() => tokenModule.create(result.uid, userData.MACAddress));
-        } else {
-          return userModule.create({
-            username: userData.username,
-            password: rsaModule.pubEncrypt(userData.password)
-          })
-          .then((uid) => tokenModule.create(uid, userData.MACAddress))
-        }
+    // Referrals to v2 api
+    v2Referrals
+      .login({
+        messages: rsaModule.pubEncrypt(JSON.stringify(dataPackage))
       })
-      .then(
-        (resolveTask) => {
-          res.set('Cache-Control', 'no-store');
-          res.set('Pragma', 'no-cache');
+      .then((resolve) => {
+        if (resolve.httpStatus === 200) {
+          let expIn = (new Date(resolve.tokenExp) - new Date(resolve.tokenMfd)) / 1000;
           res.status(200).json({
-            token: resolveTask.token,
-            expire_in: resolveTask.expire_in,
+            token: resolve.token,
+            expire_in: expIn,
             debug: req.debug
           });
-        },
-        (rejectTask) => {
-          console.log("rejectTask", rejectTask);
-          let resMes = rejectTask;
-          resMes.debug = req.debug;
-          res.status(500).json(resMes);
+        } else {
+          res.status(resolve.httpStatus).json({
+            statusCode: resolve.statusCode,
+            status: resolve.status
+          });
         }
-      );
+      })
+      ;
+
   },
   logout: (req, res, next) => {
     res.status(404).json({
