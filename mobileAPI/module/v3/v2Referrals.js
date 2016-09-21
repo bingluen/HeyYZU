@@ -94,7 +94,7 @@ module.exports = {
     return v2Poster('/v2/user/student/profile', data);
   },
   userCourse: (data) => {
-    return v2Poster('/v2/user/studnet/course', data);
+    return v2Poster('/v2/user/student/course', data);
   },
   userRefreshCourse: (data) => {
     return v2Poster('/v2/user/student/refreshCourse', data);
