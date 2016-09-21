@@ -103,7 +103,7 @@ module.exports = {
     return v2Poster('/v2/library/loanRecord', data);
   },
   libraryGetCollection: (token) => {
-    return v2Getter('/v2/library/collection?token=' + token);
+    return v2Getter('/v2/library/collection?token=' + encodeURIComponent(token));
   },
   libraryAddCollection: (data) => {
     return v2Poster('/v2/library/collection', data);

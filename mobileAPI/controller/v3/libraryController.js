@@ -2,6 +2,8 @@
 
 const libraryModel = require(__mobileAPIBase + 'module/v3/library');
 
+const v2Referrals = require(__mobileAPIBase + 'module/v3/v2Referrals');
+
 function getProp(obj, prop) {
   if (obj.hasOwnProperty(prop)) return obj[prop];
   else throw new ReferenceError('The value `' + prop +
@@ -82,27 +84,80 @@ module.exports = {
     ;
   },
   getLoanRecord: (req, res, next) => {
-    res.status(404).json({
-      statusCode: 404,
-      status: "Not found."
-    });
+    let postData = {};
+    if (req.params.type === "reading") {
+      postData.token = req.query.token;
+    } else if(req.params.type === "read") {
+      postData.token = req.query.token;
+      postData.period = "history";
+    } else {
+      res.status(400).json({
+        status: "Params illegal.",
+        statusCode: 1101
+      })
+      return;
+    }
+
+    v2Referrals.libraryLoanRecord(postData)
+      .then((resolve) => {
+        if (resolve.httpStatus === 200) {
+          let bookRegex = /圖書/;
+          let periodicalRegex = /期刊/;
+          let ebookRegex = /電子書/
+          let attachRegex = /附件/;
+          let response = resolve.data;
+          response.forEach((cv) => {
+            delete cv.sn;
+            cv.loanDate = (new Date(cv.loanDate[0])).toISOString();
+            cv.dueDate = (new Date(cv.dueDate)).toISOString();
+            cv.type = cv.type.match(bookRegex) ? 'book' : cv.type.match(periodicalRegex) ? 'periodical' : cv.type.match(ebookRegex) ? 'ebook' : cv.type.match(attachRegex) ? 'attach' : 'media';
+          });
+          res.status(resolve.httpStatus).json(response);
+        } else {
+          res.status(resolve.httpStatus).json({
+            statusCode: resolve.statusCode,
+            status: resolve.status
+          });
+        }
+      });
   },
   getCollection: (req, res, next) => {
-    res.status(404).json({
-      statusCode: 404,
-      status: "Not found."
-    });
+    v2Referrals.libraryGetCollection(req.query.token)
+      .then((resolve) => {
+        if (resolve.httpStatus === 200) {
+          res.status(resolve.httpStatus).json(resolve.data.map((cv) => cv.book_bibliosno));
+        } else {
+          res.status(resolve.httpStatus).json({
+            statusCode: resolve.statusCode,
+            status: resolve.status
+          });
+        }
+      });
   },
   add2Collection: (req, res, next) => {
-    res.status(404).json({
-      statusCode: 404,
-      status: "Not found."
-    });
+    v2Referrals.libraryAddCollection(req.body)
+      .then((resolve) => {
+        if (resolve.httpStatus === 200) {
+          res.status(resolve.httpStatus).json({msg: "success."});
+        } else {
+          res.status(resolve.httpStatus).json({
+            statusCode: resolve.statusCode,
+            status: resolve.status
+          });
+        }
+      });
   },
   removeFromCollection: (req, res, next) => {
-    res.status(404).json({
-      statusCode: 404,
-      status: "Not found."
-    });
+    v2Referrals.libraryRemoveCollection(req.body)
+      .then((resolve) => {
+        if (resolve.httpStatus === 200) {
+          res.status(resolve.httpStatus).json({msg: "success."});
+        } else {
+          res.status(resolve.httpStatus).json({
+            statusCode: resolve.statusCode,
+            status: resolve.status
+          });
+        }
+      });
   }
 }
