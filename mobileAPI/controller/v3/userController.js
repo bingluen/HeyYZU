@@ -7,6 +7,10 @@ module.exports = {
       v2Referrals.courseInfo({token: req.query.token})
         .then((resolve) => {
           if (resolve.httpStatus === 200) {
+            let data = resolve.data.map((cv) => {
+              cv.lessonClassroom = Object.keys(cv.lessonClassroom).map((key) => ({time: key, classroom: cv.lessonClassroom[key]}));
+              return cv;
+            })
             res.status(200).json(resolve.data);
           } else {
             res.status(resolve.httpStatus).json({
