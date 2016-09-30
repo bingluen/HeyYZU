@@ -93,7 +93,9 @@ module.exports = {
             let grade = gradeResult.filter((grade) => (grade.homework_id == cv.homework_id))[0];
             cv.grade = grade.grade;
             cv.comment = grade.comment;
-            cv.deadline = (new Date(cv.deadline)).toISOString();
+            let deadline = new Date(cv.deadline)
+            deadline.setSeconds(deadline.getSeconds() + 60 * 60 * 24 - 1);
+            cv.deadline = deadline.toISOString();
             return cv;
           });
           return resolve;
