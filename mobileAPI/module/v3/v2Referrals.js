@@ -105,10 +105,22 @@ module.exports = {
     });
   },
   courseNotice: (data) => {
-    return v2Poster('/v2/course/notice', data);
+    return v2Poster('/v2/course/notice', data).then((resolve) => {
+      resolve.data = resolve.data.map((cv) => {
+        cv.date = (new Date(cv.date)).toISOString();
+        return cv;
+      });
+      return resolve;
+    });
   },
   courseMaterial: (data) => {
-    return v2Poster('/v2/course/material', data);
+    return v2Poster('/v2/course/material', data).then((resolve) => {
+      resolve.data = resolve.data.map((cv) => {
+        cv.date = (new Date(cv.date)).toISOString();
+        return cv;
+      });
+      return resolve;
+    });
   },
   courseHomeworkGrade: (data) => {
     return v2Poster('/v2/course/grade/homework', data);
