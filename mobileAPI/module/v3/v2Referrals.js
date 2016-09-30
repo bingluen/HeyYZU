@@ -76,7 +76,33 @@ module.exports = {
     return v2Poster('/v2/course/info', data);
   },
   courseHomework: (data) => {
-    return v2Poster('/v2/course/homework', data);
+    return v2Poster('/v2/course/homework', data).then((resolve) => {
+      let homeworkIds = resolve.data
+        .reduce((pv, cv) => {
+          pv.push(cv.homework_id);
+          return pv;
+        }, []);
+
+      return v2Poster('/v2/course/grade/homework', {
+        token: data.token,
+        id: homeworkIds
+      }).then((gradeResult) => {
+        try {
+          gradeResult = gradeResult.result;
+          resolve.data = resolve.data.map((cv) => {
+            let grade = gradeResult.filter((grade) => (grade.homework_id == cv.homework_id))[0];
+            cv.grade = grade.grade;
+            cv.comment = grade.comment;
+            cv.deadline = (new Date(cv.deadline)).toISOString();
+            return cv;
+          });
+          return resolve;
+        } catch (e) {
+          return resolve;
+        }
+      }, (reject) => { console.log(reject) });
+
+    });
   },
   courseNotice: (data) => {
     return v2Poster('/v2/course/notice', data);
