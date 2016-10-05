@@ -53,14 +53,14 @@ module.exports = {
     ;
 
   },
-  getBookInfo: (req, res, next) => {
+  getBookStatus: (req, res, next) => {
     let legalMediaType = ['book', 'periodical', 'media'];
     if (!req.params.mediaType || legalMediaType.indexOf(req.params.mediaType) < 0) {
       next();
       return;
     }
     libraryModel
-      .bookInfo(getProp(req.params, "bibliosno"), req.params.mediaType)
+      .bookStatus(getProp(req.params, "bibliosno"), req.params.mediaType)
       .then(
         (resolveTask) => {
           if (req.debug) {
@@ -120,6 +120,25 @@ module.exports = {
           });
         }
       });
+  },
+  getBookInfo: (req, res, next) => {
+    return libraryModel.bookInfo(getProp(req.params, "bibliosno")).then((resolveTask) => {
+      if (req.debug) {
+        res.status(200).json({
+          data: resolveTask,
+          debug: req.debug
+        });
+      } else {
+        res.status(200).json(resolveTask);
+      }
+    }, (rejectTask) => {
+      res.status(rejectTask.httpStatus).json({
+        statusCode: rejectTask.statusCode,
+        status: rejectTask.status,
+        error: rejectTask.error,
+        debug: req.debug
+      });
+    });
   },
   getCollection: (req, res, next) => {
     v2Referrals.libraryGetCollection(req.query.token)

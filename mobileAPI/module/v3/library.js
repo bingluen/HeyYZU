@@ -10,7 +10,8 @@ const NOT_FOUND_BOOK = { httpStatus: 404, statusCode: 404, status: "Not found bo
 
 
 const SEARCH_API = "http://unipop.yzu.edu.tw/OpenAPI/api/lib/keyword/";
-const BOOKINFO_API = "http://unipop.yzu.edu.tw/OpenAPI/api/lib/Holding/";
+const BOOKSTATUS_API = "http://unipop.yzu.edu.tw/OpenAPI/api/lib/Holding/";
+const BOOKINFO_API = "http://unipop.yzu.edu.tw/OpenAPI/api/lib/keyword/SYS="
 
 function LibraryException(errorObject) {
   this.httpStatus = errorObject.httpStatus;
@@ -85,17 +86,17 @@ module.exports = {
       })
       ;
   },
-  bookInfo: (bibliosno, type) => {
+  bookStatus: (bibliosno, type) => {
     if(Number.isInteger(bibliosno)) {
       return new Promise((resolve) => {
         throw new LibraryException(BIBLIOSNO_TYPE_ERROR);
       });
     }
 
-    let getBookInfo = new Promise((resolve) => {
+    let getBookStatus = new Promise((resolve) => {
       let dataStream = ""
       request
-        .get(BOOKINFO_API + bibliosno.toString())
+        .get(BOOKSTATUS_API + bibliosno.toString())
         .on('response', (response) => {
           response
             .on('data', (chunk) => {
@@ -114,7 +115,7 @@ module.exports = {
       ;
     });
 
-    return getBookInfo
+    return getBookStatus
       .then(
         (resolveTask) => {
           // re-parse
@@ -188,5 +189,65 @@ module.exports = {
         }
       )
     ;
+  },
+  bookInfo: (bibliosno) => {
+    if(Number.isInteger(bibliosno)) {
+      return new Promise((resolve) => {
+        throw new LibraryException(BIBLIOSNO_TYPE_ERROR);
+      });
+    }
+
+
+    let getBookinfo = new Promise((resolve) => {
+      let dataStream = "";
+      request
+        .get(BOOKINFO_API + bibliosno.toString())
+        .on('response', (response) => {
+          response
+            .on('data', (chunk) => {
+              dataStream += chunk;
+            })
+            .on('end', () => {
+              resolve(dataStream)
+            })
+          ;
+        })
+        .on('error', (error) => {
+          let err = REQUEST_ERROR;
+          err.error = error.toString();
+          throw new LibraryException(err);
+        })
+      ;
+    });
+
+    return getBookinfo
+      .then((resolveTask) => {
+        // re-parse
+        try {
+          resolveTask = JSON.parse(resolveTask);
+        } catch (e) {
+          throw new LibraryException(REQUEST_INTENRAL_ERROR);
+        }
+
+        let bookRegex = /圖書/;
+        let periodicalRegex = /期刊/;
+        let ebookRegex = /電子書/
+        // adjust structure
+        resolveTask = resolveTask.map((cv) => ({
+          bibliosno: cv.bibliosno,
+          title: cv.bktitle,
+          author: cv.author,
+          publishYear: parseInt(cv.publish_YY.replace(/[^0-9]/g, ''), 10) || -1,
+          callNo: cv.ccl.replace(/<br>| /g, ''),
+          type: cv.material_type.match(bookRegex) ? 'book' : cv.material_type.match(periodicalRegex) ? 'periodical' : cv.material_type.match(ebookRegex) ? 'ebook' : 'media',
+          ISBN: parseInt(cv.ISBN.replace(/[^0-9]/g, ''), 10) || -1,
+          ISSN: parseInt(cv.ISSN.replace(/[^0-9]/g, ''), 10) || -1,
+          cover: cv.Cover,
+          publish: cv.Publish
+        }));
+
+        return resolveTask[0];
+      })
+      ;
   }
 };
