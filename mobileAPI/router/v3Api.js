@@ -50,7 +50,7 @@ router.get('/library/loanRecord/:type', libraryController.getLoanRecord);
 router.get('/library/collection', libraryController.getCollection);
 router.post('/library/collection', libraryController.add2Collection);
 router.delete('/library/collection', libraryController.removeFromCollection);
-
+router.get('/library/dashboard', libraryController.getDashboard);
 /**
  * User Router
  */
