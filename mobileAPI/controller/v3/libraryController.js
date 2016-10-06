@@ -60,7 +60,7 @@ module.exports = {
       return;
     }
     libraryModel
-      .bookStatus(getProp(req.params, "bibliosno"), req.params.mediaType)
+      .bookStatus(Number.parseInt(getProp(req.params, "bibliosno"), 10), req.params.mediaType)
       .then(
         (resolveTask) => {
           if (req.debug) {
@@ -122,7 +122,7 @@ module.exports = {
       });
   },
   getBookInfo: (req, res, next) => {
-    return libraryModel.bookInfo(getProp(req.params, "bibliosno")).then((resolveTask) => {
+    return libraryModel.bookInfo(Number.parseInt(getProp(req.params, "bibliosno"), 10)).then((resolveTask) => {
       if (req.debug) {
         res.status(200).json({
           data: resolveTask,
@@ -178,5 +178,75 @@ module.exports = {
           });
         }
       });
+  },
+  getDashboard: (req, res, next) => {
+    let token = req.query.token;
+    let resData = {};
+
+    let getCollection = v2Referrals.libraryGetCollection(token).then((resolveTask) => {
+      let task = resolveTask.data.map((cv) => cv.book_bibliosno)
+        .map((cv) => {
+          return libraryModel.bookInfo(cv)
+        });
+      return Promise.all(task).then((resolveTask) => {
+        resData.collection = resolveTask;
+      }, (rejectTask) => {
+        console.log(rejectTask);
+      });
+    });
+
+    let getReadingBook = v2Referrals.libraryLoanRecord({token: token})
+      .then((resolve) => {
+        if (resolve.httpStatus === 200) {
+          let bookRegex = /圖書/;
+          let periodicalRegex = /期刊/;
+          let ebookRegex = /電子書/
+          let attachRegex = /附件/;
+          let response = resolve.data;
+          response.forEach((cv) => {
+            delete cv.sn;
+            cv.loanDate = (new Date(cv.loanDate[0])).toISOString();
+            cv.dueDate = (new Date(cv.dueDate)).toISOString();
+            cv.type = cv.type.match(bookRegex) ? 'book' : cv.type.match(periodicalRegex) ? 'periodical' : cv.type.match(ebookRegex) ? 'ebook' : cv.type.match(attachRegex) ? 'attach' : 'media';
+          });
+          resData.reading = response;
+          return Promise.resolve();
+        } else {
+          return Promise.reject();
+        }
+      })
+    ;
+
+    let getReadBook = v2Referrals.libraryLoanRecord({token: token, period: 'history'})
+      .then((resolve) => {
+        if (resolve.httpStatus === 200) {
+          let bookRegex = /圖書/;
+          let periodicalRegex = /期刊/;
+          let ebookRegex = /電子書/
+          let attachRegex = /附件/;
+          let response = resolve.data;
+          response.forEach((cv) => {
+            delete cv.sn;
+            cv.loanDate = (new Date(cv.loanDate[0])).toISOString();
+            cv.dueDate = (new Date(cv.dueDate)).toISOString();
+            cv.type = cv.type.match(bookRegex) ? 'book' : cv.type.match(periodicalRegex) ? 'periodical' : cv.type.match(ebookRegex) ? 'ebook' : cv.type.match(attachRegex) ? 'attach' : 'media';
+          });
+          resData.read = response;
+          return Promise.resolve();
+        } else {
+          return Promise.reject();
+        }
+      })
+    ;
+
+    Promise.all([getCollection, getReadingBook, getReadBook])
+      .then(() => {
+        res.status(200).json(resData);
+      }, () => {
+        res.status(500).json({
+          msg: "Internal error"
+        })
+      })
+    ;
   }
 }

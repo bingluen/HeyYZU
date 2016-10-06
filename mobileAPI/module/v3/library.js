@@ -87,7 +87,7 @@ module.exports = {
       ;
   },
   bookStatus: (bibliosno, type) => {
-    if(Number.isInteger(bibliosno)) {
+    if(!Number.isInteger(bibliosno)) {
       return new Promise((resolve) => {
         throw new LibraryException(BIBLIOSNO_TYPE_ERROR);
       });
@@ -191,7 +191,7 @@ module.exports = {
     ;
   },
   bookInfo: (bibliosno) => {
-    if(Number.isInteger(bibliosno)) {
+    if(!Number.isInteger(bibliosno)) {
       return new Promise((resolve) => {
         throw new LibraryException(BIBLIOSNO_TYPE_ERROR);
       });
