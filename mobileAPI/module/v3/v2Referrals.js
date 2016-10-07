@@ -137,7 +137,14 @@ module.exports = {
     return v2Poster('/v2/user/student/refreshCourse', data);
   },
   libraryLoanRecord: (data) => {
-    return v2Poster('/v2/library/loanRecord', data);
+    return v2Poster('/v2/library/loanRecord', data)
+      .then((resolve) => {
+        resolve.data = resolve.data.map((cv) => {
+          cv.bibliosno = Number.parseInt(cv.bibliosno, 10) || -1
+          return cv;
+        });
+        return resolve;
+      });
   },
   libraryGetCollection: (token) => {
     return v2Getter('/v2/library/collection?token=' + encodeURIComponent(token));
