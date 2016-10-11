@@ -486,8 +486,8 @@ function refreshDB(taskPackage) {
               for (var lesson_id in sendList){
                   var msg = JSON.stringify(sendList[lesson_id]);
                   fcm.setData(msg);
-                  fcm.setNotification(lesson_id, "");
-                  fcm.sendTopic("classA");
+                  fcm.setNotification(lesson_id, "new");
+                  fcm.sendTopic("lesson"+lesson_id);
               }
               
            }
