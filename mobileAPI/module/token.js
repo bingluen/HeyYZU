@@ -8,7 +8,7 @@ module.exports.createToken = function(userData, next) {
     Token 規則
     RSA ( base64 ( id(l=20) + '-CHUANGBINGLUEN-' + md5 ( deviceId + token MFD + '-ERICKSON-') + '-MAKOTOKI-' + userData.deviceMAC ) )
    */
-
+  
   var mfd = new Date(Date.now());
   //捨去millisecond，因為資料庫無法儲存millisecond
   mfd.setMilliseconds(0);
@@ -16,7 +16,7 @@ module.exports.createToken = function(userData, next) {
 
   // Setting exp time ( 2 days)
   exp.setDate(exp.getDate() + 2);
-
+  
   var newToken = rsa.pubEncrypt(
     new Buffer(
       zpad(userData.uid, 20)
@@ -56,16 +56,16 @@ module.exports.createToken = function(userData, next) {
   queryParams.push(userData.deviceInfo.osVer);
   queryParams.push(userData.deviceInfo.device);
   queryParams.push(newToken);
-  queryParams.push(mfd.toISOString());
-  queryParams.push(exp.toISOString());
+  queryParams.push(mfd.toISOString().slice(0, 19).replace('T', ' '));
+  queryParams.push(exp.toISOString().slice(0, 19).replace('T', ' '));
   queryParams.push(userData.uid);
   queryParams.push(userData.deviceId);
   queryParams.push(userData.deviceInfo.os);
   queryParams.push(userData.deviceInfo.osVer);
   queryParams.push(userData.deviceInfo.device);
   queryParams.push(newToken);
-  queryParams.push(mfd.toISOString());
-  queryParams.push(exp.toISOString());
+  queryParams.push(mfd.toISOString().slice(0, 19).replace('T', ' '));
+  queryParams.push(exp.toISOString().slice(0, 19).replace('T', ' '));
 
   var query = dbHelper.query(queryStatement, queryParams, function(err, result, field) {
     if (err) {

@@ -1,12 +1,13 @@
  {
    "database": {
-     "host": "",
-     "dbname": "",
-     "username": "",
-     "password": ""
+     "host": "127.0.0.1",
+     "dbname": "heyyzu",
+     "username": "root",
+     "password": "test123"
    },
    "RSA": {
-     "public": "",
-     "private": ""
-   }
+       "public": "key/mobile_key.pub",
+       "private": "key/mobile_key.pem"
+    },
+    "FCM_key":"AIzaSyCzDeBThSxXXd56rj1Mqr8F1NNhrm6UK-8"
  }

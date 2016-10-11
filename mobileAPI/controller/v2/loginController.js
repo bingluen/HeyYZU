@@ -13,13 +13,13 @@ module.exports.student = function(req, res, next) {
     Step 1 check messages is exists
    */
   if (!(req.body.messages && (messages = JSON.parse(rsa.priDecrypt(req.body.messages))))) {
+  //if (!(req.body.messages && (messages = JSON.parse(req.body.messages)))) {
     res.status(400).json({
       statusCode: 1101,
       status: 'Params illegal'
     });
     return;
   }
-
   /*
     Step 2 check params is exists
    */
@@ -158,7 +158,7 @@ module.exports.student = function(req, res, next) {
          return;
        }
      }
-
+    
      tokenHelper.createToken(user, cb);
    }
 

@@ -43,3 +43,9 @@ Configure the api by modifying the file `mobileAPI/config.json`. Including:
 - key place
 Configure the webController by modifying the file `webController/config.json`. Including:
 - Allow domain.
+
+
+### error: this is incompatible with sql_mode=only_full_group_by
+```
+mysql> SET GLOBAL sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));
+```

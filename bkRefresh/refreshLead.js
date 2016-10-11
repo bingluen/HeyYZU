@@ -60,6 +60,10 @@ module.exports = (taskPackage) => {
 }
 
 function getAuthInfo(taskPackage) {
+  if(taskPackage.length == 0){
+    reject(taskPackage);
+  }
+
   return new Promise((resolve,reject)=>{
 
     var query = "SELECT user_uid, portalUsername, portalPassword FROM student WHERE user_uid in (";
