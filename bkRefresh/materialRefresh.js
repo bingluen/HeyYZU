@@ -2,6 +2,7 @@ var dbHelper = require(__mobileAPIBase + 'module/dbHelper');
 var helper = require(__mobileAPIBase + 'module/helper');
 var pyCarriers = require(__mobileAPIBase + 'module/pyCarriers');
 var refreshLead = require(__refreshBase + 'refreshLead');
+var FCM = require(__mobileAPIBase + 'module/fcm');
 
 module.exports = (next) => {
   console.log(
@@ -456,6 +457,8 @@ function refreshDB(taskPackage) {
     + "  AND attachPortalFilename = portalFilename "
     + "SET fetch_material.attach_id = attachments.attach_id;"
 
+    + "SELECT * FROM fetch_material WHERE attach_id NOT IN (SELECT attach_id FROM materials) ;"
+
     + "INSERT INTO materials (lesson_id, schedule, outline, date, link, video, attach_id) SELECT lesson_id, schedule, outline, date, link, video, attach_id FROM fetch_material; "
 
     + "DROP TABLE fetch_material; "
@@ -465,10 +468,43 @@ function refreshDB(taskPackage) {
         if(err) {
           reject({err: err, sql: query.sql});
         } else {
-          resolve();
+
+           var sendList = {};
+           var fetch_material = result[25];
+
+           if(fetch_material.length > 0)
+           {
+              fetch_material.forEach((row)=>{
+                var newData = {'outline':row.outline, 'schedule':row.schedule};
+                if(row.lesson_id in sendList){
+                    sendList[ row.lesson_id ].push(newData);
+                }
+                else{
+                    sendList[ row.lesson_id ] = [newData];
+                }
+
+              });
+              
+              console.log(
+                "[noticeRefresh]",
+                (new Date(Date.now())).toISOString(),
+                "Fetch "+Object.keys(sendList).length+" new materials."
+              )
+
+              var fcm = new FCM();
+              for (var lesson_id in sendList){
+                  var msg = JSON.stringify(sendList[lesson_id]);
+                  fcm.setNotificationTitle(lesson_id);
+                  fcm.setNotificationBody(msg);
+                  fcm.setTopic("lesson"+lesson_id);
+                  fcm.PostFCM();
+              }
+              
+           }
+           resolve();
+
         }
       }
-    )
-
+    );
   });
 }
