@@ -470,7 +470,7 @@ function refreshDB(taskPackage) {
         } else {
 
            var sendList = {};
-           var fetch_material = result[25];
+           var fetch_material = result[result.length - 3];
 
            if(fetch_material.length > 0)
            {

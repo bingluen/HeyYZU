@@ -464,7 +464,7 @@ function refreshDB(taskPackage) {
         } else {
 
            var sendList = {};
-           var fetch_notice = result[12];
+           var fetch_notice = result[result.length - 3];
 
            if(fetch_notice.length > 0)
            {
@@ -489,7 +489,8 @@ function refreshDB(taskPackage) {
                   var msg = JSON.stringify(sendList[lesson_id]);
                   fcm.setNotificationTitle(lesson_id);
                   fcm.setNotificationBody(msg);
-                  fcm.setTopic("lesson"+lesson_id);
+                  //fcm.setTopic("lesson"+lesson_id);
+                  fcm.setTopic("classA");
                   fcm.PostFCM();
               }
               

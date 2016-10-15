@@ -36,8 +36,7 @@ function pushFCM() {
   this.setCollapseKey = (key) => {
     let legalKey = ["App Message", "Course Message"];
     if(legalKey.indexOf(key) >= 0) {
-        this.messageiOS.collapse_key = key;
-        this.messageAndroid.collapse_key = key;
+        this.payload.collapse_key = key;
     }
     else{
         return new Promise(() => {
@@ -132,7 +131,7 @@ function pushFCM() {
       }));
     }
 
-    if (this.messageTopic.to != "") {
+    if (/^\/topics\/\w+$/.test(this.messageTopic.to)) {
       PromiseTask.push(new Promise((resolve) => {
         fcm.send(extend(this.payload, this.messageTopic), (err, res) => {
           if (err) {
