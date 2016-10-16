@@ -2,42 +2,43 @@
 
 const FCM = require('fcm-node');
 const fcm = new FCM(__mobileAPIConfig.FCM_key);
+const extend = require('util')._extend
 
 function FCMException(exception) {
   this.message = exception;
 }
 
 function pushFCM() {
+  this.payload = {
+    time_to_live: 7 * 24 * 60 * 60, // 7 days
+    priority: "normal",
+    collapse_key: "App Message", 
+    data: {},
+    notification: {}
+  }
+
   this.messageiOS = {
     registration_ids: [],
-    time_to_live: 7 * 24 * 60 * 60, // 7 days
-    collapse_key: "App Message", // Default
-    priority: 5,
-    data: null,
-    notification: null
+    priority: 5
   };
 
   this.messageAndroid = {
     registration_ids: [],
-    time_to_live: 7 * 24 * 60 * 60, // 7 days
-    collapse_key: "App Message", // Default
-    priority: "normal",
-    data: null,
-    notification: null
+    priority: "normal"
   };
+
+  this.messageTopic = {
+    to : "", 
+    priority: "normal",
+  };
+
 
   this.setCollapseKey = (key) => {
     let legalKey = ["App Message", "Course Message"];
-    switch (legalKey.indexOf(key)) {
-      case 0:
-        this.messageiOS.collapse_key = "App Message";
-        this.messageAndroid.collapse_key = "App Message";
-        break;
-      case 1:
-        this.messageiOS.collapse_key = "Course Message";
-        this.messageAndroid.collapse_key = "Course Message";
-        break;
-      default:
+    if(legalKey.indexOf(key) >= 0) {
+        this.payload.collapse_key = key;
+    }
+    else{
         return new Promise(() => {
           throw new FCMException("Collapse key error");
         });
@@ -83,30 +84,25 @@ function pushFCM() {
     return this;
   }
 
+  this.setTopic = (topic) => {
+    if (topic != ""){
+      this.messageTopic.to = "/topics/" + topic;
+    }
+    return this;
+  }
+
   this.setNotificationTitle = (title) => {
-    if (this.messageiOS.notification == null) {
-      this.messageiOS.notification = {};
+    if (title != null){
+      this.payload.notification.title = title;
     }
-    if (this.messageAndroid.notification == null) {
-      this.messageAndroid.notification = {};
-    }
-
-    this.messageAndroid.notification.title = title;
-    this.messageiOS.notification.title = title;
-
     return this;
   }
 
   this.setNotificationBody = (body) => {
-    if (this.messageiOS.notification == null) {
-      this.messageiOS.notification = {};
+    if (body != null){
+      this.payload.notification.body = body;
     }
-    if (this.messageAndroid.notification == null) {
-      this.messageAndroid.notification = {};
-    }
-    this.messageAndroid.notification.body = body;
-    this.messageiOS.notification.body = body;
-
+      
     return this;
   }
 
@@ -114,7 +110,7 @@ function pushFCM() {
     let PromiseTask = [];
     if (this.messageiOS.registration_ids.length > 0) {
       PromiseTask.push(new Promise((resolve) => {
-        fcm.send(this.messageiOS, (err, res) => {
+        fcm.send(extend(this.payload, this.messageiOS), (err, res) => {
           if (err) {
             throw new FCMException("occure error when post FCM to iOS device", err);
           } else {
@@ -125,9 +121,21 @@ function pushFCM() {
     }
     if (this.messageAndroid.registration_ids.length > 0) {
       PromiseTask.push(new Promise((resolve) => {
-        fcm.send(this.messageAndroid, (err, res) => {
+        fcm.send(extend(this.payload, this.messageAndroid), (err, res) => {
           if (err) {
             throw new FCMException("occure error when post FCM to Android device", err);
+          } else {
+            resolve();
+          }
+        });
+      }));
+    }
+
+    if (/^\/topics\/\w+$/.test(this.messageTopic.to)) {
+      PromiseTask.push(new Promise((resolve) => {
+        fcm.send(extend(this.payload, this.messageTopic), (err, res) => {
+          if (err) {
+            throw new FCMException("occure error when post FCM to Topic", err);
           } else {
             resolve();
           }

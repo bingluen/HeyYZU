@@ -2,6 +2,7 @@ var dbHelper = require(__mobileAPIBase + 'module/dbHelper');
 var helper = require(__mobileAPIBase + 'module/helper');
 var pyCarriers = require(__mobileAPIBase + 'module/pyCarriers');
 var refreshLead = require(__refreshBase + 'refreshLead');
+var FCM = require(__mobileAPIBase + 'module/fcm');
 
 module.exports = (next) => {
   console.log(
@@ -10,6 +11,7 @@ module.exports = (next) => {
     "執行通知資料庫更新"
   );
 
+  
   var query = ""
   + "  SELECT user_uid, student_lesson.lesson_id, courseCode, lessonYear, lessonSemester, lessonClass "
   + "   FROM student_lesson LEFT JOIN lesson "
@@ -447,21 +449,56 @@ function refreshDB(taskPackage) {
     + "; "
 
     + "DELETE FROM fetch_notice WHERE portalId IS NULL;"
+    
+    + "SELECT * FROM fetch_notice WHERE portalId NOT IN (SELECT portalId FROM notices) ;"
 
     + "INSERT INTO notices (lesson_id, portalId, title, author, content, attach_id, date) SELECT lesson_id, portalId, title, author, content, attach_id, date FROM fetch_notice fn "
     + "WHERE NOT EXISTS (SELECT 1 FROM notices WHERE fn.lesson_id = notices.lesson_id AND fn.portalId = notices.portalId); "
 
     + "DROP TABLE fetch_notice; "
-
+    
     var query = dbHelper.query(queryStatement, queryParams,
       (err, result) => {
         if(err) {
           reject({err: err, sql: query.sql});
         } else {
-          resolve();
+
+           var sendList = {};
+           var fetch_notice = result[result.length - 3];
+
+           if(fetch_notice.length > 0)
+           {
+              fetch_notice.forEach((row)=>{
+                var newData = {'tilte':row.title, 'author':row.author};
+                if(row.lesson_id in sendList){
+                    sendList[ row.lesson_id ].push(newData);
+                }
+                else{
+                    sendList[ row.lesson_id ] = [newData];
+                }
+              });
+              
+              console.log(
+                "[noticeRefresh]",
+                (new Date(Date.now())).toISOString(),
+                "Fetch "+Object.keys(sendList).length+" new notices."
+              )
+
+              var fcm = new FCM();
+              for (var lesson_id in sendList){
+                  var msg = JSON.stringify(sendList[lesson_id]);
+                  fcm.setNotificationTitle(lesson_id);
+                  fcm.setNotificationBody(msg);
+                  //fcm.setTopic("lesson"+lesson_id);
+                  fcm.setTopic("classA");
+                  fcm.PostFCM();
+              }
+              
+           }
+           resolve();
+
         }
       }
-    )
-
+    );
   });
 }
