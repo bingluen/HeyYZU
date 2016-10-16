@@ -65,6 +65,10 @@ module.exports = {
           throw new LibraryException(REQUEST_INTENRAL_ERROR);
         }
 
+        if (!resolveTask.length) {
+          throw new LibraryException(REQUEST_INTENRAL_ERROR);
+        }
+
         let bookRegex = /圖書/;
         let periodicalRegex = /期刊/;
         let ebookRegex = /電子書/
