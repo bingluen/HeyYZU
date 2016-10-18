@@ -11,8 +11,8 @@ module.exports = {
     res.status(200).json({
       statusCode: 200,
       status: "Successful.",
-      lastVer: 15,
-      minVer: 0,
+      lastVer: "1.0.0",
+      minVer: "1.0.0",
     });
   },
   android: (req, res, next) => {
