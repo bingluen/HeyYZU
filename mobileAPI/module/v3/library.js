@@ -242,7 +242,7 @@ module.exports = {
           title: cv.bktitle,
           author: cv.author,
           publishYear: parseInt(cv.publish_YY.replace(/[^0-9]/g, ''), 10) || -1,
-          callNo: cv.ccl.replace(/<br>| /g, ''),
+          callNo: cv.ccl,
           type: cv.material_type.match(bookRegex) ? 'book' : cv.material_type.match(periodicalRegex) ? 'periodical' : cv.material_type.match(ebookRegex) ? 'ebook' : 'media',
           ISBN: parseInt(cv.ISBN.replace(/[^0-9]/g, ''), 10) || -1,
           ISSN: parseInt(cv.ISSN.replace(/[^0-9]/g, ''), 10) || -1,
