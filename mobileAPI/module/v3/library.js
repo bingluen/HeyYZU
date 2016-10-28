@@ -74,7 +74,7 @@ module.exports = {
         let ebookRegex = /電子書/
         // adjust structure
         resolveTask = resolveTask.map((cv) => ({
-          bibliosno: cv.bibliosno,
+          bibliosno: parseInt(cv.bibliosno, 10),
           title: cv.bktitle,
           author: cv.author,
           publishYear: parseInt(cv.publish_YY.replace(/[^0-9]/g, ''), 10) || -1,
@@ -238,7 +238,7 @@ module.exports = {
         let ebookRegex = /電子書/
         // adjust structure
         resolveTask = resolveTask.map((cv) => ({
-          bibliosno: cv.bibliosno,
+          bibliosno: parseInt(cv.bibliosno, 10),
           title: cv.bktitle,
           author: cv.author,
           publishYear: parseInt(cv.publish_YY.replace(/[^0-9]/g, ''), 10) || -1,
