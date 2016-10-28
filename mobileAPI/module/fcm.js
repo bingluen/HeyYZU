@@ -11,8 +11,6 @@ function FCMException(exception) {
 function pushFCM() {
   this.payload = {
     time_to_live: 7 * 24 * 60 * 60, // 7 days
-    priority: "normal",
-    collapse_key: "App Message", 
     data: {},
     notification: {}
   }
@@ -29,7 +27,7 @@ function pushFCM() {
 
   this.messageTopic = {
     to : "", 
-    priority: "normal",
+    priority: "high",
   };
 
 
