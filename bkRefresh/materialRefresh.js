@@ -457,7 +457,7 @@ function refreshDB(taskPackage) {
     + "  AND attachPortalFilename = portalFilename "
     + "SET fetch_material.attach_id = attachments.attach_id;"
 
-    + "SELECT * FROM fetch_material WHERE attach_id NOT IN (SELECT attach_id FROM materials) ;"
+    + "SELECT a.lesson_id,courseName,outline,schedule FROM fetch_material a LEFT JOIN lesson b ON a.lesson_id=b.lesson_id LEFT JOIN course c ON c.course_id=b.course_id;"
 
     + "INSERT INTO materials (lesson_id, schedule, outline, date, link, video, attach_id) SELECT lesson_id, schedule, outline, date, link, video, attach_id FROM fetch_material; "
 
@@ -475,7 +475,7 @@ function refreshDB(taskPackage) {
            if(fetch_material.length > 0)
            {
               fetch_material.forEach((row)=>{
-                var newData = {'outline':row.outline, 'schedule':row.schedule};
+                var newData = {'courseName':row.courseName, 'outline':row.outline, 'schedule':row.schedule};
                 if(row.lesson_id in sendList){
                     sendList[ row.lesson_id ].push(newData);
                 }
@@ -493,11 +493,15 @@ function refreshDB(taskPackage) {
 
               var fcm = new FCM();
               for (var lesson_id in sendList){
-                  var msg = JSON.stringify(sendList[lesson_id]);
-                  fcm.setNotificationTitle(lesson_id);
-                  fcm.setNotificationBody(msg);
-                  fcm.setTopic("lesson"+lesson_id);
-                  fcm.PostFCM();
+                  var data = sendList[lesson_id];
+                  if(data.length > 0)
+                  {
+                    var content = data.length+"項教材上傳";
+                    fcm.setNotificationTitle(data[0].courseName);
+                    fcm.setNotificationBody(content);
+                    fcm.setTopic("lesson"+lesson_id);
+                    fcm.PostFCM();
+                  }
               }
               
            }
