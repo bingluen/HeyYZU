@@ -22,7 +22,6 @@ router.post('/course/homework', courseController.getCourseHomework);
 router.get('/course/attachments/:id', courseController.getAttachment);
 router.post('/course/notice', courseController.getCourseNotice);
 router.post('/course/material', courseController.getCourseMaterial);
-router.post('/course/grade/:type', courseController.getGrade);
 
 /*
   User Router
