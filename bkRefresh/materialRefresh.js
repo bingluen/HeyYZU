@@ -497,11 +497,9 @@ function refreshDB(taskPackage) {
                   if(data.length > 0)
                   {
                     var content = data.length+"項教材上傳";
-                    //data.map(x => content += (x.outline+",\n"));
                     fcm.setNotificationTitle(data[0].courseName);
                     fcm.setNotificationBody(content);
                     fcm.setTopic("lesson"+lesson_id);
-                    //fcm.setTopic("classA");
                     fcm.PostFCM();
                   }
               }

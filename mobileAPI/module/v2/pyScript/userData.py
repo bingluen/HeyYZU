@@ -40,9 +40,7 @@ class UserData(loginPortal):
             content = BeautifulSoup(self.request.get(URL_DEFAULT).text, 'lxml')
             name =  content.find(id='MainBar_lbnUserName').text
             stdID = content.find(id='MainBar_divUserID').text
-
-
-            department = re.sub("[A-Z]","",department)
+            deptName = re.sub("[A-Z]","",department)
 
             self.messages['userdata'] = {
                 'chiName': name,
@@ -55,33 +53,8 @@ class UserData(loginPortal):
                 'phone': 'none',
                 'email': 'none',
                 'address': 'none',
-                'temp_deptName': department
+                'temp_deptName': deptName
             }
-            '''
-            self.request.get(URL_PROFILE)
-
-            content = BeautifulSoup(self.request.get(URL_IFRAMESUB).text, 'lxml')
-            postdata = {
-                'Account': self.username,
-                'SessionID': content.find('input', id='SessionID')['value']
-            }
-            content = BeautifulSoup(self.request.get(URL_BASICDATA, data=postdata).text, 'lxml')
-            birth = re.split( u'年|月|日', content.find(id='ctl00_ContentPlaceHolder_MainEdit_Cell_Birth').text)
-            birth[0] = str(int(birth[0])+1911)
-            self.messages['userdata'] = {
-                'chiName': content.find(id='ctl00_ContentPlaceHolder_MainEdit_Cell_ChiName').text,
-                'engName':content.find(id='ctl00_ContentPlaceHolder_MainEdit_Txt_EngName')['value'] if content.find(id='ctl00_ContentPlaceHolder_MainEdit_Txt_EngName').has_attr('value') else None,
-                'studentId': content.find(id='ctl00_ContentPlaceHolder_MainEdit_Cell_StdNo').text.replace(' ', ''),
-                'studentType': content.find(id='ctl00_ContentPlaceHolder_MainEdit_Cell_StdType').text.replace(' ', ''),
-                'booldType': content.find(id='ctl00_ContentPlaceHolder_MainEdit_Cell_BloodType').text.replace(' ', ''),
-                'gender': 1 if content.find(id='ctl00_ContentPlaceHolder_MainEdit_Cell_Sex').text == u'男' else 0,
-                'birth': '-'.join(birth[:3]),
-                'phone': content.find(id='ctl00_ContentPlaceHolder_MainEdit_Txt_CellPhone')['value'] if content.find(id='ctl00_ContentPlaceHolder_MainEdit_Txt_CellPhone').has_attr('value') else None,
-                'email': content.find(id='ctl00_ContentPlaceHolder_MainEdit_Txt_OtherMail')['value'] if content.find(id='ctl00_ContentPlaceHolder_MainEdit_Txt_OtherMail').has_attr('value') else None,
-                'address': content.find(id='ctl00_ContentPlaceHolder_MainEdit_Cell_NomAddr').text
-
-            }
-            '''
 
             self.messages['status'] = 'get user data successful.'
             self.messages['statusCode'] = 3400

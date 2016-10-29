@@ -489,13 +489,11 @@ function refreshDB(taskPackage) {
                   var data = sendList[lesson_id];
                   if(data.length > 0)
                   {
-                    //var content = data.length+"則最新消息";
                     var content = ""
                     data.map(x => content += ("[最新消息]"+x.tilte+".\n"));
                     fcm.setNotificationTitle(data[0].courseName);
                     fcm.setNotificationBody(content);
                     fcm.setTopic("lesson"+lesson_id);
-                    //fcm.setTopic("classA");
                     fcm.PostFCM();
                   }
 
