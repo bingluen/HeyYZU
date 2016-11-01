@@ -37,7 +37,8 @@ module.exports.studentProfile = function(req, res, next) {
            status: 'get student profile successful.',
            data: {
              chiName: result.data.chiName,
-             engName: result.data.engName
+             engName: result.data.engName,
+             deptName: result.data.temp_deptName
            }
          });
        }

@@ -448,9 +448,9 @@ function refreshDB(taskPackage) {
     + "  notices.date = fetch_notice.date "
     + "; "
 
-    + "DELETE FROM fetch_notice WHERE portalId IS NULL;"
+    + "DELETE FROM fetch_notice WHERE portalId IS NULL OR portalId IN (SELECT portalId FROM notices);"
     
-    + "SELECT * FROM fetch_notice WHERE portalId NOT IN (SELECT portalId FROM notices) ;"
+    + "SELECT a.lesson_id,courseName,title,author,content FROM fetch_notice a LEFT JOIN lesson b ON a.lesson_id=b.lesson_id LEFT JOIN course c ON c.course_id=b.course_id;"
 
     + "INSERT INTO notices (lesson_id, portalId, title, author, content, attach_id, date) SELECT lesson_id, portalId, title, author, content, attach_id, date FROM fetch_notice fn "
     + "WHERE NOT EXISTS (SELECT 1 FROM notices WHERE fn.lesson_id = notices.lesson_id AND fn.portalId = notices.portalId); "
@@ -469,7 +469,7 @@ function refreshDB(taskPackage) {
            if(fetch_notice.length > 0)
            {
               fetch_notice.forEach((row)=>{
-                var newData = {'tilte':row.title, 'author':row.author};
+                var newData = {'courseName':row.courseName, 'tilte':row.title, 'author':row.author};
                 if(row.lesson_id in sendList){
                     sendList[ row.lesson_id ].push(newData);
                 }
@@ -486,12 +486,18 @@ function refreshDB(taskPackage) {
 
               var fcm = new FCM();
               for (var lesson_id in sendList){
-                  var msg = JSON.stringify(sendList[lesson_id]);
-                  fcm.setNotificationTitle(lesson_id);
-                  fcm.setNotificationBody(msg);
-                  //fcm.setTopic("lesson"+lesson_id);
-                  fcm.setTopic("classA");
-                  fcm.PostFCM();
+                  var data = sendList[lesson_id];
+                  if(data.length > 0)
+                  {
+                    var content = ""
+                    data.map(x => content += ("[最新消息]"+x.tilte+".\n"));
+                    fcm.setNotificationTitle(data[0].courseName);
+                    fcm.setNotificationBody(content);
+                    fcm.setTopic("lesson"+lesson_id);
+                    fcm.PostFCM();
+                  }
+
+                  
               }
               
            }
