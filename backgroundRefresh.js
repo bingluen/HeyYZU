@@ -19,7 +19,7 @@ function task() {
     (new Date(Date.now())).toISOString(),
     '開始進行資料庫更新'
   );
-  return homework(true)
+  return homework(false)
   .then(
     (reslove) => {
       console.log(
@@ -91,5 +91,4 @@ function task() {
     }
   )
 }
-
 setInterval(task, timeInterval);
