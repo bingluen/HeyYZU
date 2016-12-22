@@ -11,7 +11,6 @@ module.exports = (next) => {
     "執行通知資料庫更新"
   );
 
-  
   var query = ""
   + "  SELECT user_uid, student_lesson.lesson_id, courseCode, lessonYear, lessonSemester, lessonClass "
   + "   FROM student_lesson LEFT JOIN lesson "
@@ -20,71 +19,72 @@ module.exports = (next) => {
   var params = [helper.getYearNow(), helper.getSemesterNow()];
 
   var task = new Promise((resolve, reject) => {
+    console.log(
+      "[noticeRefresh]",
+      (new Date(Date.now())).toISOString(),
+      "取出課程清單"
+    );
+    
+    var qs = dbHelper.query(query, params, (err, result, field) => {
+      if (err) {
+        console.error(
+          "[noticeRefresh]",
+          (new Date(Date.now())).toISOString(),
+          err
+        );
+        console.error(
+          "[noticeRefresh]",
+          (new Date(Date.now())).toISOString(),
+          qs.sql
+        );
+        reject();
+      } else {
+        resolve(result);
+      }
+    });
+  })
+    .then(
+    (resolve) => {
       console.log(
         "[noticeRefresh]",
         (new Date(Date.now())).toISOString(),
-        "取出課程清單"
+        "課程清單取出完成"
       );
-      var qs = dbHelper.query(query, params, (err, result, field) => {
-        if (err) {
-          console.error(
-            "[noticeRefresh]",
-            (new Date(Date.now())).toISOString(),
-            err
-          );
-          console.error(
-            "[noticeRefresh]",
-            (new Date(Date.now())).toISOString(),
-            qs.sql
-          );
-          reject();
-        } else {
-          resolve(result);
+      //重新包裝
+      var refreshList = resolve.map((cv) => {
+        return {
+          lesson: {
+            lesson_id: cv.lesson_id,
+            courseCode: cv.courseCode,
+            lessonYear: cv.lessonYear,
+            lessonSemester: cv.lessonSemester,
+            lessonClass: cv.lessonClass
+          },
+          user_uid: cv.user_uid
         }
       });
-    })
-    .then(
-      (resolve) => {
-        console.log(
-          "[noticeRefresh]",
-          (new Date(Date.now())).toISOString(),
-          "課程清單取出完成"
-        );
-        //重新包裝
-        var refreshList = resolve.map((cv) => {
-          return {
-            lesson: {
-              lesson_id: cv.lesson_id,
-              courseCode: cv.courseCode,
-              lessonYear: cv.lessonYear,
-              lessonSemester: cv.lessonSemester,
-              lessonClass: cv.lessonClass
-            },
-            user_uid: cv.user_uid
-          }
-        });
-        //把更新清單，以user_uid做分群。
-        var taskPackage = refreshList.reduce((pv, cv, i) => {
-            if (pv.indexOf(cv.user_uid) < 0) pv.push(cv.user_uid);
+      //把更新清單，以user_uid做分群。
+      var taskPackage = refreshList.reduce((pv, cv, i) => {
+        if (pv.indexOf(cv.user_uid) < 0) pv.push(cv.user_uid);
+        return pv;
+      }, [])
+        .map((cv, i, arr) => ({
+          user_uid: cv,
+          lesson: refreshList.reduce((pv, c, i) => {
+            if (c.user_uid == cv) pv.push(c.lesson);
             return pv;
           }, [])
-          .map((cv, i, arr) => ({
-            user_uid: cv,
-            lesson: refreshList.reduce((pv, c, i) => {
-              if (c.user_uid == cv) pv.push(c.lesson);
-              return pv;
-            }, [])
-          }));
-        return noticeRefresh(taskPackage)
-      },
-      (reject) => {
-        console.log(
-          "[noticeRefresh]",
-          (new Date(Date.now())).toISOString(),
-          "課程清單取出失敗"
-        );
-        return Promise.reject();
-      }
+        }));
+      return noticeRefresh(taskPackage)
+    },
+    (reject) => {
+      console.log(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        "課程清單取出失敗"
+      );
+      return Promise.reject();
+    }
     )
   return task;
 }
@@ -102,103 +102,103 @@ function noticeRefresh(taskPackages) {
    */
   return refreshLead(taskPackages)
     .then((resolveTask) => {
+      console.log(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        "更新前置作業完成."
+      );
+      if (resolveTask.length > 0) {
+        return filter(resolveTask);
+      } else {
+        return Promise.reject(true);
+      }
+    },
+    (rejectTask) => {
+      console.error(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        "更新前置作業失敗."
+      );
+      console.error(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        rejectTask
+      );
+    })
+    .then(
+    (resolveTask) => {
+      return crawler(resolveTask);
+    },
+    (rejectTask) => {
+      if (rejectTask === true) {
         console.log(
           "[noticeRefresh]",
           (new Date(Date.now())).toISOString(),
-          "更新前置作業完成."
+          "可用 User 為空，中斷更新。"
         );
-        if (resolveTask.length > 0) {
-          return filter(resolveTask);
-        } else {
-          return Promise.reject(true);
-        }
-      },
-      (rejectTask) => {
+      } else {
         console.error(
           "[noticeRefresh]",
           (new Date(Date.now())).toISOString(),
-          "更新前置作業失敗."
-        );
-        console.error(
-          "[noticeRefresh]",
-          (new Date(Date.now())).toISOString(),
-          rejectTask
-        );
-      })
-    .then(
-      (resolveTask) => {
-        return crawler(resolveTask);
-      },
-      (rejectTask) => {
-        if (rejectTask === true) {
-          console.log(
-            "[noticeRefresh]",
-            (new Date(Date.now())).toISOString(),
-            "可用 User 為空，中斷更新。"
-          );
-        } else {
-          console.error(
-            "[noticeRefresh]",
-            (new Date(Date.now())).toISOString(),
-            "Taskpackage過濾失敗."
-          );
-        }
-        console.error(
-          "[noticeRefresh]",
-          (new Date(Date.now())).toISOString(),
-          rejectTask
+          "Taskpackage過濾失敗."
         );
       }
+      console.error(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        rejectTask
+      );
+    }
     )
     .then(
-      (resolveTask) => {
-        console.log(
-          "[noticeRefresh]",
-          (new Date(Date.now())).toISOString(),
-          "Crawler 執行完畢."
-        );
-        return refreshDB(resolveTask);
-      },
-      (rejectTask) => {
-        console.error(
-          "[noticeRefresh]",
-          (new Date(Date.now())).toISOString(),
-          rejectTask
-        )
-        console.error(
-          "[noticeRefresh]",
-          (new Date(Date.now())).toISOString(),
-          "Crawler 失敗."
-        );
-      }
+    (resolveTask) => {
+      console.log(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        "Crawler 執行完畢."
+      );
+      return refreshDB(resolveTask);
+    },
+    (rejectTask) => {
+      console.error(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        rejectTask
+      )
+      console.error(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        "Crawler 失敗."
+      );
+    }
     )
     .then(
-      (resolveTask) => {
-        console.log(
-          "[noticeRefresh]",
-          (new Date(Date.now())).toISOString(),
-          "資料庫更新完畢."
-        )
-        return Promise.resolve();
-      },
-      (rejectTask) => {
-        console.error(
-          "[noticeRefresh]",
-          (new Date(Date.now())).toISOString(),
-          "資料庫更新 失敗."
-        );
-        console.error(
-          "[noticeRefresh]",
-          (new Date(Date.now())).toISOString(),
-          rejectTask.err
-        );
-        console.error(
-          "[noticeRefresh]",
-          (new Date(Date.now())).toISOString(),
-          rejectTask.sql
-        );
-        return Promise.reject();
-      }
+    (resolveTask) => {
+      console.log(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        "資料庫更新完畢."
+      )
+      return Promise.resolve();
+    },
+    (rejectTask) => {
+      console.error(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        "資料庫更新 失敗."
+      );
+      console.error(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        rejectTask.err
+      );
+      console.error(
+        "[noticeRefresh]",
+        (new Date(Date.now())).toISOString(),
+        rejectTask.sql
+      );
+      return Promise.reject();
+    }
     )
 }
 
@@ -234,7 +234,7 @@ function filter(taskPackages) {
         )
         return previous;
       }
-    , {});
+      , {});
 
     /**
      * 依據 lessonList 從出現最多次的 People(user_uid) 開始挑
@@ -242,7 +242,7 @@ function filter(taskPackages) {
     var minCoverSet = [];
     // Clone taskPackages
     var peopleSet = taskPackages
-    while(Object.keys(lessonSet).length > 0) {
+    while (Object.keys(lessonSet).length > 0) {
       /**
        * 計算每一個 user cover 的 lesson 數目
        */
@@ -252,7 +252,7 @@ function filter(taskPackages) {
           previous[people.user_uid] = people.lesson.length;
           return previous;
         }
-      , {});
+        , {});
 
 
       /**
@@ -340,20 +340,21 @@ function crawler(taskPackages) {
             'notice',
             JSON.stringify(cv.lessons)
           ],
-          scriptFile: 'catalyst.py'},
+          scriptFile: 'catalyst.py'
+        },
           (r) => {
             if (r.statusCode != 3100) {
               console.error(
                 "[hwRefresh]",
                 (new Date(Date.now())).toISOString(),
-                 "爬蟲登入 失敗.",
-                 r.statusCode,
-                 r.status
-               );
-               unsolve();
+                "爬蟲登入 失敗.",
+                r.statusCode,
+                r.status
+              );
+              unsolve();
             } else {
               var data = r.data.filter((vv) => (vv.statusCode == 3200))
-                .map((v, i , arr) => ({
+                .map((v, i, arr) => ({
                   user_uid: cv.user_uid,
                   lesson_id: lessonDB.filter(
                     (r) => (
@@ -365,7 +366,7 @@ function crawler(taskPackages) {
                   )[0].lesson_id,
                   notices: v.noticelist
                 }))
-              ;
+                ;
               solve(data);
             }
           }
@@ -384,25 +385,25 @@ function refreshDB(taskPackage) {
     taskPackage.forEach((people) => {
       people.forEach((lesson) => {
         queryStatement += "INSERT INTO lesson_info_refresh (lesson_id, messages_last_refresh_time) "
-        + "VALUES "
+          + "VALUES "
         queryStatement += "(?, NOW()) ON DUPLICATE KEY "
-        + "UPDATE messages_last_refresh_time = NOW() ;"
+          + "UPDATE messages_last_refresh_time = NOW() ;"
         queryParams.push(lesson.lesson_id)
       })
     })
 
     queryStatement += "CREATE TEMPORARY TABLE IF NOT EXISTS fetch_notice ( "
-    + "  lesson_id int(10) unsigned,  "
-    + "  portalId int(10) unsigned,  "
-    + "  title varchar(200),  "
-    + "  author varchar(200),  "
-    + "  content text,  "
-    + "  attach_id int(30) unsigned,  "
-    + "  date datetime,  "
-    + "  attachPortalId int(10) unsigned,  "
-    + "  attachPortalType tinyint(2) unsigned, "
-    + "  attachPortalFilename varchar(200) "
-    + "); "
+      + "  lesson_id int(10) unsigned,  "
+      + "  portalId int(10) unsigned,  "
+      + "  title varchar(200),  "
+      + "  author varchar(200),  "
+      + "  content text,  "
+      + "  attach_id int(30) unsigned,  "
+      + "  date datetime,  "
+      + "  attachPortalId int(10) unsigned,  "
+      + "  attachPortalType tinyint(2) unsigned, "
+      + "  attachPortalFilename varchar(200) "
+      + "); "
 
     taskPackage.forEach((people) => {
       people.forEach((lesson) => {
@@ -424,84 +425,83 @@ function refreshDB(taskPackage) {
     })
 
     queryStatement += "INSERT INTO attachments (portalId, portalType, portalFilename) "
-    + "SELECT attachPortalId AS portalId, "
-    + "   attachPortalType AS portalType, "
-    + "   attachPortalFilename AS portalFilename "
-    + "FROM fetch_notice "
-    + "WHERE attachPortalId IS NOT NULL "
-    + "  AND attachPortalType IS NOT NULL "
-    + "  AND attachPortalFilename IS NOT NULL "
-    + "ON DUPLICATE KEY UPDATE attachments.portalId=attachments.portalId;"
+      + "SELECT attachPortalId AS portalId, "
+      + "   attachPortalType AS portalType, "
+      + "   attachPortalFilename AS portalFilename "
+      + "FROM fetch_notice "
+      + "WHERE attachPortalId IS NOT NULL "
+      + "  AND attachPortalType IS NOT NULL "
+      + "  AND attachPortalFilename IS NOT NULL "
+      + "ON DUPLICATE KEY UPDATE attachments.portalId=attachments.portalId;"
 
-    + "UPDATE attachments INNER JOIN fetch_notice ON "
-    + "  attachPortalId = attachments.portalId "
-    + "  AND attachPortalFilename = portalFilename "
-    + "SET fetch_notice.attach_id = attachments.attach_id;"
+      + "UPDATE attachments INNER JOIN fetch_notice ON "
+      + "  attachPortalId = attachments.portalId "
+      + "  AND attachPortalFilename = portalFilename "
+      + "SET fetch_notice.attach_id = attachments.attach_id;"
 
-    + "UPDATE notices INNER JOIN fetch_notice ON "
-    + "  notices.lesson_id = fetch_notice.lesson_id "
-    + "  AND notices.portalId = fetch_notice.portalId "
-    + "SET notices.title = fetch_notice.title, "
-    + "  notices.author = fetch_notice.author, "
-    + "  notices.content = fetch_notice.content, "
-    + "  notices.attach_id = fetch_notice.attach_id, "
-    + "  notices.date = fetch_notice.date "
-    + "; "
+      + "UPDATE notices INNER JOIN fetch_notice ON "
+      + "  notices.lesson_id = fetch_notice.lesson_id "
+      + "  AND notices.portalId = fetch_notice.portalId "
+      + "SET notices.title = fetch_notice.title, "
+      + "  notices.author = fetch_notice.author, "
+      + "  notices.content = fetch_notice.content, "
+      + "  notices.attach_id = fetch_notice.attach_id, "
+      + "  notices.date = fetch_notice.date "
+      + "; "
 
-    + "DELETE FROM fetch_notice WHERE portalId IS NULL OR portalId IN (SELECT portalId FROM notices);"
-    
-    + "SELECT a.lesson_id,courseName,title,author,content FROM fetch_notice a LEFT JOIN lesson b ON a.lesson_id=b.lesson_id LEFT JOIN course c ON c.course_id=b.course_id;"
+      + "DELETE FROM fetch_notice WHERE portalId IS NULL OR portalId IN (SELECT portalId FROM notices);"
 
-    + "INSERT INTO notices (lesson_id, portalId, title, author, content, attach_id, date) SELECT lesson_id, portalId, title, author, content, attach_id, date FROM fetch_notice fn "
-    + "WHERE NOT EXISTS (SELECT 1 FROM notices WHERE fn.lesson_id = notices.lesson_id AND fn.portalId = notices.portalId); "
+      + "SELECT a.lesson_id,courseName,title,author,content FROM fetch_notice a LEFT JOIN lesson b ON a.lesson_id=b.lesson_id LEFT JOIN course c ON c.course_id=b.course_id;"
 
-    + "DROP TABLE fetch_notice; "
-    
+      + "INSERT INTO notices (lesson_id, portalId, title, author, content, attach_id, date) SELECT lesson_id, portalId, title, author, content, attach_id, date FROM fetch_notice fn "
+      + "WHERE NOT EXISTS (SELECT 1 FROM notices WHERE fn.lesson_id = notices.lesson_id AND fn.portalId = notices.portalId); "
+
+      + "DROP TABLE fetch_notice; "
+
     var query = dbHelper.query(queryStatement, queryParams,
       (err, result) => {
-        if(err) {
-          reject({err: err, sql: query.sql});
+        if (err) {
+          reject({ err: err, sql: query.sql });
         } else {
 
-           var sendList = {};
-           var fetch_notice = result[result.length - 3];
+          var sendList = {};
+          var fetch_notice = result[result.length - 3];
 
-           if(fetch_notice.length > 0)
-           {
-              fetch_notice.forEach((row)=>{
-                var newData = {'courseName':row.courseName, 'tilte':row.title, 'author':row.author};
-                if(row.lesson_id in sendList){
-                    sendList[ row.lesson_id ].push(newData);
-                }
-                else{
-                    sendList[ row.lesson_id ] = [newData];
-                }
-              });
+          if (fetch_notice.length > 0) {
+            fetch_notice.forEach((row) => {
+              var newData = { 'courseName': row.courseName, 'tilte': row.title, 'author': row.author };
               
-              console.log(
-                "[noticeRefresh]",
-                (new Date(Date.now())).toISOString(),
-                "Fetch "+Object.keys(sendList).length+" new notices."
-              )
-
-              var fcm = new FCM();
-              for (var lesson_id in sendList){
-                  var data = sendList[lesson_id];
-                  if(data.length > 0)
-                  {
-                    var content = ""
-                    data.map(x => content += ("[最新消息]"+x.tilte+".\n"));
-                    fcm.setNotificationTitle(data[0].courseName);
-                    fcm.setNotificationBody(content);
-                    fcm.setTopic("lesson"+lesson_id);
-                    fcm.PostFCM();
-                  }
-
-                  
+              if (row.lesson_id in sendList) {
+                sendList[row.lesson_id].push(newData);
               }
-              
-           }
-           resolve();
+              else {
+                sendList[row.lesson_id] = [newData];
+              }
+            });
+
+            console.log(
+              "[noticeRefresh]",
+              (new Date(Date.now())).toISOString(),
+              "Fetch " + Object.keys(sendList).length + " new notices."
+            )
+
+            var fcm = new FCM();
+            for (var lesson_id in sendList) {
+              var data = sendList[lesson_id];
+              if (data.length > 0) {
+                var content = ""
+                data.map(x => content += ("[最新消息]" + x.tilte + ".\n"));
+                fcm.setNotificationTitle(data[0].courseName);
+                fcm.setNotificationBody(content);
+                fcm.setTopic("lesson" + lesson_id);
+                fcm.PostFCM();
+              }
+
+
+            }
+
+          }
+          resolve();
 
         }
       }
