@@ -15,7 +15,7 @@ module.exports.student = function(req, res, next) {
   if (!(req.body.messages && (messages = JSON.parse(rsa.priDecrypt(req.body.messages))))) {
     res.status(400).json({
       statusCode: 1101,
-      status: 'Params illegal'
+      status: 'Messages illegal'
     });
     return;
   }
