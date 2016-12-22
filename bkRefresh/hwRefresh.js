@@ -361,7 +361,7 @@ function refreshDB(data) {
     + "DELETE FROM fetch_homeworks WHERE wkId IS NULL;"
 
     // Insert new homeworks
-    + "INSERT INTO homeworks (lesson_id, wkId, title, schedule, description, attach_id, isGroup, freeSubmit, deadline) SELECT lesson_id, wkId, title, schedule, description, attach_id, isGroup, freeSubmit, deadline FROM fetch_homeworks fh "
+    + "REPLACE INTO homeworks (lesson_id, wkId, title, schedule, description, attach_id, isGroup, freeSubmit, deadline) SELECT lesson_id, wkId, title, schedule, description, attach_id, isGroup, freeSubmit, deadline FROM fetch_homeworks fh "
     + "WHERE NOT EXISTS (SELECT 1 FROM homeworks hw WHERE fh.lesson_id = hw.lesson_id AND fh.wkId = hw.wkId); "
 
     // renew homework id
@@ -382,6 +382,8 @@ function refreshDB(data) {
     + ";"
 
     + "DROP TABLE fetch_homeworks; "
+
+    + "DELETE n1 FROM homeworks n1, homeworks n2 WHERE n1.homework_id > n2.homework_id AND n1.lesson_id = n2.lesson_id AND n1.wkId = n2.wkId;"
 
     var query = dbHelper.query(queryStatement, queryParams,
       (err, result) => {

@@ -1,3 +1,5 @@
+var moment = require('moment-timezone');
+
 module.exports.getYearNow = function()
 {
   var nowTime = new Date(Date.now());
@@ -18,13 +20,14 @@ module.exports.getSemesterNow = function()
 module.exports.getCurrentDay = () =>
 {
   var nowTime = new Date(Date.now());
-  return nowTime.getDay();
+  return moment.tz(nowTime, "Asia/Taipei").format("DD");
 }
 
 module.exports.getCurrentHour = () =>
 {
+  
   var nowTime = new Date(Date.now());
-  return nowTime.getHours();
+  return moment.tz(nowTime, "Asia/Taipei").format("HH");
 }
 
 module.exports.randName = (length) =>
