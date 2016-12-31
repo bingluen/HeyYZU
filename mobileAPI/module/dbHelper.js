@@ -3,7 +3,7 @@ var mysql = require('mysql');
 
 
 module.exports.query = (query, params, cb) => {
-	var database = mysql.createConnection({
+	var dbPool = mysql.createPool({
 		host: __mobileAPIConfig.database.host,
 		user: __mobileAPIConfig.database.username,
 		password: __mobileAPIConfig.database.password,
@@ -13,11 +13,16 @@ module.exports.query = (query, params, cb) => {
 		charset: 'utf8_general_ci'
 	});
 
-	database.connect()
-
-	var query = database.query(query, params, (err, result, field) => {
-		cb(err, result, field)
-		database.end();
+	dbPool.getConnection(function(err, connection) {
+	  // Use the connection
+	  connection.query(query, params, function(err, result, field) {
+	    // And done with the connection.
+	    cb(err, result, field)
+	    connection.release();
+	    // Don't use the connection here, it has been returned to the pool.
+	  });
 	});
-	return query;
+	return {
+		sql: 'deprecated'
+	};
 };
