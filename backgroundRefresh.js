@@ -4,91 +4,118 @@ global.__mobileAPIConfig = require(__mobileAPIBase + 'config.json');
 global.__refreshBase = path.join(__dirname, '/bkRefresh/');
 global.__SystemBase = __dirname + '/'
 
-var homework = require(__refreshBase + 'hwRefresh');
-var notice = require (__refreshBase + 'noticeRefresh');
-var material = require(__refreshBase + 'materialRefresh');
-
-var timeInterval = 15 * 60 * 1000
+var dbHelper = require(__mobileAPIBase + 'module/dbHelper');
+var helper = require(__mobileAPIBase + 'module/helper');
+var rsa = require(__mobileAPIBase + 'module/rsa');
+var PythonShell = require('python-shell');
+var fs = require('fs-extra');
+var crypto = require('crypto');
+timeInterval = 15 * 60 * 1000;
 
 function task() {
-  console.log(
-    "----------------------------------------------------------------"
-  );
-  console.log(
-    "[backgroundRefresh]",
-    (new Date(Date.now())).toISOString(),
-    '開始進行資料庫更新'
-  );
-  return homework(false)
-  .then(
-    (reslove) => {
-      console.log(
-        "[backgroundRefresh]",
-        (new Date(Date.now())).toISOString(),
-        'Homework refresh Done'
-      );
-      return material();
-    },
-    (reject) => {
-      console.log(
-        "[backgroundRefresh]",
-        (new Date(Date.now())).toISOString(),
-        'Homework refresh reject'
-      );
-      console.log(
-        "[backgroundRefresh]",
-        (new Date(Date.now())).toISOString(),
-        reject
-      );
-    }
-  )
-  .then(
-    (reslove) => {
-      console.log(
-        "[backgroundRefresh]",
-        (new Date(Date.now())).toISOString(),
-        'material refresh Done'
-      );
-      return notice();
-    },
-    (reject) => {
-      console.log(
-        "[backgroundRefresh]",
-        (new Date(Date.now())).toISOString(),
-        'material refresh reject'
-      );
-      console.log(
-        "[backgroundRefresh]",
-        (new Date(Date.now())).toISOString(),
-        reject
-      );
-    }
-  )
-  .then(
-    (reslove) => {
-      console.log(
-        "[backgroundRefresh]",
-        (new Date(Date.now())).toISOString(),
-        'notice refresh Done'
-      );
-      console.log(
-        "[backgroundRefresh]",
-        (new Date(Date.now())).toISOString(),
-        '資料庫更新完畢'
-      );
-    },
-    (reject) => {
-      console.log(
-        "[backgroundRefresh]",
-        (new Date(Date.now())).toISOString(),
-        'notice refresh reject'
-      );
-      console.log(
-        "[backgroundRefresh]",
-        (new Date(Date.now())).toISOString(),
-        reject
-      );
-    }
-  )
+  let lookupUser = new Promise((resolve, reject) => {
+    let qs = "SELECT student.`user_uid` as `user_uid`, `portalUsername`, `portalPassword`, lesson.`lesson_id`, `courseCode`, `lessonYear`, `lessonSemester`, `lessonClass` "
+    + " FROM student RIGHT JOIN ( "
+    + " SELECT `user_uid`, student_lesson.`lesson_id`, `courseCode`, `lessonYear`, `lessonSemester`, `lessonClass` "
+    + " FROM `student_lesson` "
+    + " LEFT JOIN lesson ON student_lesson.`lesson_id` = lesson.`lesson_id` "
+    + " WHERE `lessonYear` = ? AND `lessonSemester` = ?) as lesson "
+    + " ON lesson.`user_uid` = student.`user_uid`;";
+    let params = [helper.getYearNow(), helper.getSemesterNow()];
+    dbHelper.query(qs, params, (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
+  })
+
+  let decrypt = (userPacks) => {
+    return userPacks.map((el) => ({
+      user_uid: el.user_uid,
+      username: el.portalUsername,
+      password: el.portalPassword,
+      lesson_id: el.lesson_id,
+      courseCode: el.courseCode,
+      lessonYear: el.lessonYear,
+      lessonClass: el.lessonClass
+    })).reduce((p, el, index, array) => {
+      let user = p.find((els) => els.user_uid === el.user_uid)
+      if(user === undefined) {
+        p.push({
+          user_uid: el.user_uid,
+          username: el.username,
+          password: el.password,
+          lessons: [{
+            lesson_id: el.lesson_id,
+            courseCode: el.courseCode,
+            lessonYear: el.lessonYear,
+            lessonClass: el.lessonClass
+          }]
+        })
+      } else {
+        user.lessons.push({
+          lesson_id: el.lesson_id,
+          courseCode: el.courseCode,
+          lessonYear: el.lessonYear,
+          lessonClass: el.lessonClass
+        })
+      }
+      return p;
+    }, []).map((el) => {
+      el.password = rsa.priDecrypt(el.password);
+      return el;
+    })
+  }
+
+  let runPy = (packet) => {
+    let current_date = (new Date()).valueOf().toString();
+    let random = Math.random().toString();
+    let swap = crypto.createHash('sha1').update(current_date + random).digest('hex');
+
+    return new Promise((resolve, reject) => {
+      let PyOptions = {
+        mode: 'json',
+        scriptPath: __refreshBase,
+        args: [swap]
+      }
+      fs.writeJSONSync(__refreshBase + swap, packet);
+      PythonShell.run('main.py', PyOptions, function (err, results) {
+        if(!err)
+          resolve();
+        else
+        {
+          reject({err: "Can't run python script : " + PyOptions.scriptPath + 'main.py' + ' and error message: ' + err});
+        }
+      });
+    }).then(() => {
+      return fs.readJSONSync(swap);
+    })
+    ;
+  }
+
+  let write = (packet) => {
+    console.log(packet);
+    return Promise.resolve('db write done');
+  }
+
+  lookupUser
+    .then((packet) => {
+      return decrypt(packet);
+    })
+    .then((packet) => {
+      return runPy(packet);
+    })
+    .then((packet) => {
+      return write(packet);
+    })
+    .then((result) => {
+      console.log(result);
+    }, (err) => {
+      console.error(err);
+    })
+
 }
+
 setInterval(task, timeInterval);
