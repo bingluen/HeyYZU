@@ -6,7 +6,7 @@ import sys
 from login import loginPortal
 
 portalx_headers = {
-    'Host':'portalx.yzu.edu.tw',
+    'Host':'unipop.yzu.edu.tw',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:26.0) Gecko/20100101 Firefox/26.0',
     'Accept-Language': 'zh-TW,zh;q=0.8,en-US;q=0.5,en;q=0.3',
@@ -14,14 +14,14 @@ portalx_headers = {
     'Connection': 'keep-alive'
 }
 
-URL_PROFILE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/ClickMenuLog.aspx?type=App_&SysCode=P1'
-URL_IFRAMESUB = 'https://portalx.yzu.edu.tw/PortalSocialVB/IFrameSub.aspx'
+URL_PROFILE = 'https://unipop.yzu.edu.tw/PortalSocialVB/FMain/ClickMenuLog.aspx?type=App_&SysCode=P1'
+URL_IFRAMESUB = 'https://unipop.yzu.edu.tw/PortalSocialVB/IFrameSub.aspx'
 URL_BASICDATA = 'https://portal.yzu.edu.tw/personal/StudentBasic/BasicData.aspx'
-URL_HISTORY = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/ClickMenuLog.aspx?type=App_&SysCode=S1'
+URL_HISTORY = 'https://unipop.yzu.edu.tw/PortalSocialVB/FMain/ClickMenuLog.aspx?type=App_&SysCode=S1'
 
-URL_DEFAULT = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/DefaultPage.aspx?Menu=Default&LogExcute=Y'
+URL_DEFAULT = 'https://unipop.yzu.edu.tw/PortalSocialVB/FMain/DefaultPage.aspx?Menu=Default&LogExcute=Y'
 URL_MYTHING = 'https://portal.yzu.edu.tw/VC2/Student/Console/My_Everything.aspx'
-URL_PAGEMYLIST = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/PageMyList.aspx'
+URL_PAGEMYLIST = 'https://unipop.yzu.edu.tw/PortalSocialVB/FMain/PageMyList.aspx'
 
 class UserData(loginPortal):
     def pipeline(self, identity = 'student'):

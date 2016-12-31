@@ -9,12 +9,12 @@ import datetime
 import md5
 import os
 
-URL_FIRST_TO_PAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FPage/FirstToPage.aspx?'
-URL_HOMEWORK_PAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/THom/HomeworkList.aspx?Menu=Hom'
-URL_NOTICE_PAGE = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/PostWall.aspx?Menu=New'
-URL_NOTICE_LIST = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/PostWall.aspx/GetPostWall'
-URL_NOTICE_INNER = 'https://portalx.yzu.edu.tw/PortalSocialVB/FMain/PostWall.aspx/divParentInnerHtml'
-URL_MATERIALS = 'https://portalx.yzu.edu.tw/PortalSocialVB/TMat/Materials_S.aspx?Menu=Mat'
+URL_FIRST_TO_PAGE = 'https://unipop.yzu.edu.tw/PortalSocialVB/FPage/FirstToPage.aspx?'
+URL_HOMEWORK_PAGE = 'https://unipop.yzu.edu.tw/PortalSocialVB/THom/HomeworkList.aspx?Menu=Hom'
+URL_NOTICE_PAGE = 'https://unipop.yzu.edu.tw/PortalSocialVB/FMain/PostWall.aspx?Menu=New'
+URL_NOTICE_LIST = 'https://unipop.yzu.edu.tw/PortalSocialVB/FMain/PostWall.aspx/GetPostWall'
+URL_NOTICE_INNER = 'https://unipop.yzu.edu.tw/PortalSocialVB/FMain/PostWall.aspx/divParentInnerHtml'
+URL_MATERIALS = 'https://unipop.yzu.edu.tw/PortalSocialVB/TMat/Materials_S.aspx?Menu=Mat'
 
 
 class Course(loginPortal):
@@ -369,8 +369,8 @@ class Attach:
             f.close()
             return filename
 
-        hw = 'https://portalx.yzu.edu.tw/PortalSocialVB/File_DownLoad_Wk_zip.aspx?'
-        notice = 'https://portalx.yzu.edu.tw/PortalSocialVB/DownloadFile.aspx?Source=Course&'
+        hw = 'https://unipop.yzu.edu.tw/PortalSocialVB/File_DownLoad_Wk_zip.aspx?'
+        notice = 'https://unipop.yzu.edu.tw/PortalSocialVB/DownloadFile.aspx?Source=Course&'
         if type == 'hw':
             download = self.requests.get(hw+'File_name='+args['filename']+'&id='+str(args['id'])+'&type='+str(args['type']))
         elif type == 'notice':
