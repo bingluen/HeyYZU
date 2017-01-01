@@ -100,8 +100,8 @@ def fetchHomework(packets):
                 'hw': hwList['homework']
             })
     lock.acquire()
-    output['homework'] = output['homework'] + homeworks
-    output['userHW'] = output['userHW'] + userHW
+    output['homework'] = output['homework'] + homeworks if 'homework' in output else homeworks.copy()
+    output['userHW'] = output['userHW'] + userHW if 'userHW' in output else userHW.copy()
     lock.release()
 
 
@@ -112,19 +112,24 @@ def fetchMaterial(packets):
         loginInstance = loginPortal(user['username'], user['password'])
         materialInstance = Material(loginInstance.request)
         for lesson in user['lessons']:
-            mtr = materialInstance.getMaterialList(lesson)
-            materials = materials + map(
-                lambda el: {
-                    'lesson_id': lesson['lesson_id'],
-                    'schedule': el['schedule'],
-                    'lecture': el['lecture'],
-                    'link': el['link'],
-                    'outline': el['outline'],
-                    'video': el['video'],
-                    'date': el['date']
-                }, mtr['materials'])
+            try:
+                mtr = materialInstance.getMaterialList(lesson)
+                materials = materials + map(
+                    lambda el: {
+                        'lesson_id': lesson['lesson_id'],
+                        'schedule': el['schedule'],
+                        'lecture': el['lecture'],
+                        'link': el['link'],
+                        'outline': el['outline'],
+                        'video': el['video'],
+                        'date': el['date']
+                    }, mtr['materials'])
+            except:
+                # should write to log
+                pass
     lock.acquire()
     output['material'] = output['material'] + materials
+    lock.release()
 
 
 def fetchNew(packets):
@@ -134,18 +139,22 @@ def fetchNew(packets):
         loginInstance = loginPortal(user['username'], user['password'])
         newsInstance = News(loginInstance.request)
         for lesson in user['lessons']:
-            n = newsInstance.getNoticeList(lesson)
-            news = news + map(
-                lambda el: {
-                    'lesson_id': lesson['lesson_id'],
-                    'portalId': el['portalId'],
-                    'author': el['author'],
-                    'subject': el['title'],
-                    'content': el['content'],
-                    'date': el['date'],
-                    'attach': el['attach']
-                }, n['noticelist']
-            )
+            try:
+                n = newsInstance.getNoticeList(lesson)
+                news = news + map(
+                    lambda el: {
+                        'lesson_id': lesson['lesson_id'],
+                        'portalId': el['portalId'],
+                        'author': el['author'],
+                        'subject': el['title'],
+                        'content': el['content'],
+                        'date': el['date'],
+                        'attach': el['attach']
+                    }, n['noticelist']
+                )
+            except PortalException:
+                # should write to log
+                pass
 
 
 if __name__ == '__main__':
