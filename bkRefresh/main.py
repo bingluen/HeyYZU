@@ -100,8 +100,8 @@ def fetchHomework(packets):
                 'hw': hwList['homework']
             })
     lock.acquire()
-    output['homework'] = output['homework'] + homeworks if 'homework' in output else homeworks.copy()
-    output['userHW'] = output['userHW'] + userHW if 'userHW' in output else userHW.copy()
+    output['homework'] = output['homework'] + homeworks if 'homework' in output else list(homeworks)
+    output['userHW'] = output['userHW'] + userHW if 'userHW' in output else list(userHW)
     lock.release()
 
 
@@ -128,7 +128,7 @@ def fetchMaterial(packets):
                 # should write to log
                 pass
     lock.acquire()
-    output['material'] = output['material'] + materials
+    output['material'] = output['material'] + materials if 'material' in output else list(materials)
     lock.release()
 
 
@@ -155,6 +155,9 @@ def fetchNew(packets):
             except PortalException:
                 # should write to log
                 pass
+    lock.acquire()
+    output['news'] = output['news'] + news if 'news' in output else list(news)
+    lock.release()
 
 
 if __name__ == '__main__':
