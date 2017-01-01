@@ -6,9 +6,9 @@ from course import Homework, News, Material
 # config
 THREAD_PRE_USER = {
     'AUTH': 50,
-    'NEWS': 25,
-    'HOMEWORK': 25,
-    'MATERIAL': 25
+    'NEWS': 10,
+    'HOMEWORK': 10,
+    'MATERIAL': 10
 }
 
 def authUser(packet):
@@ -124,13 +124,13 @@ def fetchMaterial(packets):
                         'video': el['video'],
                         'date': el['date']
                     }, mtr['materials'])
-            except:
+            except Exception as e:
+                print(e)
                 # should write to log
                 pass
     lock.acquire()
     output['material'] = output['material'] + materials if 'material' in output else list(materials)
     lock.release()
-
 
 def fetchNew(packets):
     global lock, output
@@ -158,7 +158,6 @@ def fetchNew(packets):
     lock.acquire()
     output['news'] = output['news'] + news if 'news' in output else list(news)
     lock.release()
-
 
 if __name__ == '__main__':
     # saving output
@@ -226,7 +225,8 @@ if __name__ == '__main__':
         thread.join()
 
     # merge data & remove dupicate (for homework)
-    output['homework'] = [el for el in output['homework'] if el not in output['homewrok'][output['homework'].index(el) + 1:]]
+    output['homework'] = [el for el in output['homework'] if el not in output['homework'][output['homework'].index(el) + 1:]]
+    output['homework'] = filter(lambda el: len(el['hw']) > 0, output['homework'])
 
     # Write output to file
     # print (json.dumps(output, indent = 4))
