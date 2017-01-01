@@ -155,7 +155,7 @@ class News:
 
             postContent = {}
             try:
-                postContent['portalId'] = re.findall('ShowPostGridUnique\(([0-9]+),[0-1]\)', detail[1].a['href'], re.S)[0]
+                postContent['portalId'] = int(re.findall('ShowPostGridUnique\(([0-9]+),[0-1]\)', detail[1].a['href'], re.S)[0])
                 postContent['author'] = post.find('img', class_='imgPostAuthor')['title']
                 postContent['title'] = re.sub(u'【.*】|\([0-9]{4}_[A-Z]{2}[0-9]{3}_[A-Z]\)', '', detail[1].text)
                 postContent['date'] = detail[3].text
@@ -188,7 +188,7 @@ class News:
             url = BeautifulSoup(self.newsContent, 'lxml').find('tr').find('a')['href']
             return {
                 'CourseType': re.findall('CourseType=([0-9])', url, re.S)[0],
-                'AttachmentID': re.findall('AttachmentID=([0-9]+)', url, re.S)[0],
+                'AttachmentID': int(re.findall('AttachmentID=([0-9]+)', url, re.S)[0]),
                 'AttachmentFileName': re.findall('AttachmentFileName=(.+)', url, re.S)[0]
             }
         else:
@@ -254,7 +254,7 @@ class Material:
             lectureParams = re.findall(u'File_name=(.+)&id=([0-9]+)&type=([0-9]{1})', content.a['href'], re.S)
             return {
                 'filename': lectureParams[0][0],
-                'id': lectureParams[0][1],
+                'id': int(lectureParams[0][1]),
                 'type': 2
             }
         except:
