@@ -1,6 +1,6 @@
 # coding=UTF-8
 import json, sys, threading, time, os
-from login import loginPortal
+from login import loginPortal, PortalException
 from course import Homework, News, Material
 
 # config
