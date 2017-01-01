@@ -1,7 +1,7 @@
 # coding=UTF-8
 import json, sys, threading, time, os
 from login import loginPortal
-from
+from course import Homework, News, Material
 
 # config
 THREAD_PRE_USER = {
@@ -81,14 +81,69 @@ def reduceUser(packets):
 def fetchHomework(packets):
     global lock, output
     homeworks = []
+    userHW = []
+    for user in packets:
+        loginInstance = loginPortal(user['username'], user['password'])
+        HWInstance = Homework(loginInstance.request)
+        for lesson in user['lessons']:
+            hwList = HWInstance.getHomeworkList(lesson)
+            userHW = userHW + map(lambda el: {
+                'user_uid': user['user_uid'],
+                'lesson_id': lesson['lesson_id'],
+                'wk_id': el['wk_id'],
+                'grade': el['grade'],
+                'comment': el['comment'],
+                'uploadFile': el['uploadFile']
+            }, hwList['homework'])
+            homeworks.append({
+                'lesson_id': lesson['lesson_id'],
+                'hw': hwList['homework']
+            })
+    lock.acquire()
+    output['homework'] = output['homework'] + homeworks
+    output['userHW'] = output['userHW'] + userHW
+    lock.release()
+
 
 def fetchMaterial(packets):
     global lock, output
     materials = []
+    for user in packets:
+        loginInstance = loginPortal(user['username'], user['password'])
+        materialInstance = Material(loginInstance.request)
+        for lesson in user['lessons']:
+            materials = materials + map(
+                lambda el: {
+                    'lesson_id': lesson['lesson_id'],
+                    'schedule': el['schedule'],
+                    'lecture': el['lecture'],
+                    'link': el['link'],
+                    'outline': el['outline'],
+                    'video': el['video'],
+                    'date': el['date']
+                }, materialInstance.getMaterialList(lesson)['materials'])
+    lock.acquire()
+    output['material'] = output['material'] + materials
+
 
 def fetchNew(packets):
     global lock, output
     news = []
+    for user in packets:
+        loginInstance = loginPortal(user['username'], user['password'])
+        newsInstance = News(loginInstance.request)
+        for lesson in user['lessons']:
+            news = news + map(
+                lambda el: {
+                    'lesson_id': lesson['lesson_id'],
+                    'portalId': el['portalId'],
+                    'author': el['author'],
+                    'subject': el['title'],
+                    'content': el['content'],
+                    'date': el['date'],
+                    'attach': el['attach']
+                }, newsInstance.getNoticeList(lesson)
+            )
 
 
 if __name__ == '__main__':
@@ -131,24 +186,24 @@ if __name__ == '__main__':
     # Assign Homework Task
     threads = len(packets) / THREAD_PRE_USER['HOMEWORK'] if len(packets) % THREAD_PRE_USER['HOMEWORK'] == 0 else len(packets) / THREAD_PRE_USER['HOMEWORK'] + 1
     for i in xrange(threads):
-        task = threading.Thread(target = fetchHomework, kwargs = {'packet': packets[i * THREAD_PRE_USER['HOMEWORK']: (i + 1) * THREAD_PRE_USER['HOMEWORK']]}, name =  'thread-homework-'  + str(i))
-        task.star()
+        task = threading.Thread(target = fetchHomework, kwargs = {'packets': packets[i * THREAD_PRE_USER['HOMEWORK']: (i + 1) * THREAD_PRE_USER['HOMEWORK']]}, name =  'thread-homework-'  + str(i))
+        task.start()
         time.sleep(1)
         taskThreads.append(task)
 
     # Assign Material Task
     threads = len(taskPacket) / THREAD_PRE_USER['MATERIAL'] if len(taskPacket) % THREAD_PRE_USER['MATERIAL'] == 0 else len(taskPacket) / THREAD_PRE_USER['MATERIAL'] + 1
     for i in xrange(threads):
-        task = threading.Thread(target = fetchMaterial, kwargs = {'packet': packets[i * THREAD_PRE_USER['MATERIAL']: (i + 1) * THREAD_PRE_USER['MATERIAL']]}, name =  'thread-material-'  + str(i))
-        task.star()
+        task = threading.Thread(target = fetchMaterial, kwargs = {'packets': packets[i * THREAD_PRE_USER['MATERIAL']: (i + 1) * THREAD_PRE_USER['MATERIAL']]}, name =  'thread-material-'  + str(i))
+        task.start()
         time.sleep(1)
         taskThreads.append(task)
 
     # Assign News Task
     threads = len(taskPacket) / THREAD_PRE_USER['NEWS'] if len(taskPacket) % THREAD_PRE_USER['NEWS'] == 0 else len(taskPacket) / THREAD_PRE_USER['NEWS'] + 1
     for i in xrange(threads):
-        task = threading.Thread(target = fetchNew, kwargs = {'packet': packets[i * THREAD_PRE_USER['NEWS']: (i + 1) * THREAD_PRE_USER['NEWS']]}, name =  'thread-news-'  + str(i))
-        task.star()
+        task = threading.Thread(target = fetchNew, kwargs = {'packets': packets[i * THREAD_PRE_USER['NEWS']: (i + 1) * THREAD_PRE_USER['NEWS']]}, name =  'thread-news-'  + str(i))
+        task.start()
         time.sleep(1)
         taskThreads.append(task)
 
@@ -156,6 +211,10 @@ if __name__ == '__main__':
     for thread in taskThreads:
         thread.join()
 
+    # merge data & remove dupicate (for homework)
+    output['homework'] = [el for el in output['homework'] if el not in output['homewrok'][output['homework'].index(el) + 1:]]
+
     # Write output to file
-    with open(swap_filename, 'w') as swap_packet:
-        json.dump(output, swap_packet)
+    print (json.dumps(output, indent = 4))
+    # with open(swap_filename, 'w') as swap_packet:
+    #     json.dump(output, swap_packet)
