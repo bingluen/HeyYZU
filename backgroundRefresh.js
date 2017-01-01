@@ -39,7 +39,7 @@ function task() {
       lesson_id: el.lesson_id,
       courseCode: el.courseCode,
       lessonYear: el.lessonYear,
-      lessonSemester: el.lessonSemester
+      lessonSemester: el.lessonSemester,
       lessonClass: el.lessonClass
     })).reduce((p, el, index, array) => {
       let user = p.find((els) => els.user_uid === el.user_uid)
@@ -52,7 +52,7 @@ function task() {
             lesson_id: el.lesson_id,
             courseCode: el.courseCode,
             lessonYear: el.lessonYear,
-            lessonSemester: el.lessonSemester
+            lessonSemester: el.lessonSemester,
             lessonClass: el.lessonClass
           }]
         })
@@ -61,7 +61,7 @@ function task() {
           lesson_id: el.lesson_id,
           courseCode: el.courseCode,
           lessonYear: el.lessonYear,
-          lessonSemester: el.lessonSemester
+          lessonSemester: el.lessonSemester,
           lessonClass: el.lessonClass
         })
       }
