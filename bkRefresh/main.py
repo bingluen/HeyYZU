@@ -112,6 +112,7 @@ def fetchMaterial(packets):
         loginInstance = loginPortal(user['username'], user['password'])
         materialInstance = Material(loginInstance.request)
         for lesson in user['lessons']:
+            mtr = materialInstance.getMaterialList(lesson)
             materials = materials + map(
                 lambda el: {
                     'lesson_id': lesson['lesson_id'],
@@ -121,7 +122,7 @@ def fetchMaterial(packets):
                     'outline': el['outline'],
                     'video': el['video'],
                     'date': el['date']
-                }, materialInstance.getMaterialList(lesson)['materials'])
+                }, mtr['materials'])
     lock.acquire()
     output['material'] = output['material'] + materials
 
@@ -133,6 +134,7 @@ def fetchNew(packets):
         loginInstance = loginPortal(user['username'], user['password'])
         newsInstance = News(loginInstance.request)
         for lesson in user['lessons']:
+            n = newsInstance.getNoticeList(lesson)
             news = news + map(
                 lambda el: {
                     'lesson_id': lesson['lesson_id'],
@@ -142,7 +144,7 @@ def fetchNew(packets):
                     'content': el['content'],
                     'date': el['date'],
                     'attach': el['attach']
-                }, newsInstance.getNoticeList(lesson)
+                }, n['noticelist']
             )
 
 
@@ -215,6 +217,6 @@ if __name__ == '__main__':
     output['homework'] = [el for el in output['homework'] if el not in output['homewrok'][output['homework'].index(el) + 1:]]
 
     # Write output to file
-    print (json.dumps(output, indent = 4))
-    # with open(swap_filename, 'w') as swap_packet:
-    #     json.dump(output, swap_packet)
+    # print (json.dumps(output, indent = 4))
+    with open(swap_filename, 'w') as swap_packet:
+        json.dump(output, swap_packet)
