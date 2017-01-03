@@ -15,7 +15,7 @@ portalx_headers = {
     'Connection': 'keep-alive'
 }
 
-class PortalException:
+class PortalException(Exception):
     def __init__(self, code, status, err):
         self.code = code
         self.status = status
