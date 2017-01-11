@@ -32,7 +32,6 @@ class loginPortal:
         self.username = username
         self.password = password
         self.request = requests.Session()
-        self.login()
 
     def login(self):
         content = BeautifulSoup(self.request.post(URL_LOGIN).text, 'lxml')
