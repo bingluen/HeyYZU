@@ -6,38 +6,48 @@ from course import Homework, News, Material
 # config
 THREAD_PRE_USER = {
     'AUTH': 50,
-    'NEWS': 10,
-    'HOMEWORK': 10,
-    'MATERIAL': 10
+    'NEWS': 25,
+    'HOMEWORK': 25,
+    'MATERIAL': 25
 }
 
-def authUser(packet):
-    global lock, packets
-    results = []
+class AuthUser(threading.Thread):
+    def __init__(self, lock, name, packet):
+        super(AuthUser, self).__init__(name = name)
+        self.lock = lock
+        self.packet = packet
 
-    # do Auth
-    for user in packet:
-        instance = loginPortal(user['username'], user['password'])
+    def run(self):
+        global lock, packets
+        results = []
+
+        packet = self.packet
+
+        # do Auth
+        for user in packet:
+            instance = loginPortal(user['username'], user['password'])
+            try:
+                print('Try to get auth result for uid - ', user['user_uid'])
+                results.append({'user_uid': user['user_uid'], 'auth': instance.login()})
+            except PortalException:
+                results.append({'user_uid': user['user_uid'], 'auth': False})
+            except Exception:
+                print('I catch you inner.')
+                results.append({'user_uid': user['user_uid'], 'auth': False})
+                # exception should be write to log
+
+        # return auth result
+        lock.acquire()
         try:
-            results.append({'user_uid': user['user_uid'], 'auth': instance.login()})
-        except PortalException:
-            results.append({'user_uid': user['user_uid'], 'auth': False})
+            for user in packets:
+                for result in results:
+                    if (user['user_uid'] == result['user_uid']):
+                        user['auth'] = result['auth']
         except Exception as e:
-            results.append({'user_uid': user['user_uid'], 'auth': False})
             # exception should be write to log
+            lock.release()
 
-    # return auth result
-    lock.acquire()
-    try:
-        for user in packets:
-            for result in results:
-                if (user['user_uid'] == result['user_uid']):
-                    user['auth'] = result['auth']
-    except Exception as e:
-        # exception should be write to log
         lock.release()
-
-    lock.release()
 
 
 def reduceUser(packets):
@@ -178,13 +188,15 @@ if __name__ == '__main__':
     threads = len(packets) / THREAD_PRE_USER['AUTH'] if len(packets) % THREAD_PRE_USER['AUTH'] == 0 else len(packets) / THREAD_PRE_USER['AUTH'] + 1
     taskThreads = []
     for i in xrange(threads):
-        task = threading.Thread(target = authUser, kwargs = {'packet': packets[i * THREAD_PRE_USER['AUTH']: (i + 1) * THREAD_PRE_USER['AUTH']]}, name =  'thread-'  + str(i))
+        task = AuthUser(lock = lock, name = 'auth user thread - ' + str(i), packet = packets[i * THREAD_PRE_USER['AUTH']: (i + 1) * THREAD_PRE_USER['AUTH']])
         task.start()
-        time.sleep(1) # Waiting Thread
         taskThreads.append(task)
 
     for thread in taskThreads:
-        thread.join()
+        try:
+            thread.join()
+        except Exception:
+            print('I Catch you outside.')
 
     # Remove auth failed
     output['invalid'] = map(lambda user: user['user_uid'], filter(lambda user: user['auth'] == False, packets))
