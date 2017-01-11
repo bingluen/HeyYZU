@@ -1,53 +1,50 @@
 # coding=UTF-8
-import json, sys, threading, time, os
+import json, sys, time, os, threading
+import threadpool
 from login import loginPortal, PortalException
 from course import Homework, News, Material
+import console
 
 # config
 THREAD_PRE_USER = {
     'AUTH': 50,
-    'NEWS': 25,
+    'NM': 25, # for news & material
     'HOMEWORK': 25,
-    'MATERIAL': 25
 }
 
-class AuthUser(threading.Thread):
-    def __init__(self, lock, name, packet):
-        super(AuthUser, self).__init__(name = name)
-        self.lock = lock
-        self.packet = packet
+MAX_THREAD_NUM = 30
 
-    def run(self):
-        global lock, packets
-        results = []
-
-        packet = self.packet
-
-        # do Auth
-        for user in packet:
-            instance = loginPortal(user['username'], user['password'])
-            try:
-                print('Try to get auth result for uid - ', user['user_uid'])
-                results.append({'user_uid': user['user_uid'], 'auth': instance.login()})
-            except PortalException:
-                results.append({'user_uid': user['user_uid'], 'auth': False})
-            except Exception:
-                print('I catch you inner.')
-                results.append({'user_uid': user['user_uid'], 'auth': False})
-                # exception should be write to log
-
-        # return auth result
-        lock.acquire()
+def authUser(packet):
+    global lock, packets
+    results = []
+    console.log('authUser thread - ' + threading.current_thread().name)
+    # do Auth
+    for user in packet:
+        instance = loginPortal(user['username'], user['password'])
         try:
-            for user in packets:
-                for result in results:
-                    if (user['user_uid'] == result['user_uid']):
-                        user['auth'] = result['auth']
+            results.append({'user_uid': user['user_uid'], 'auth': instance.login()})
+        except PortalException:
+            results.append({'user_uid': user['user_uid'], 'auth': False})
         except Exception as e:
+            results.append({'user_uid': user['user_uid'], 'auth': False})
+            console.log(threading.current_thread().name + ' somthing wrong: ')
+            console.log(e)
             # exception should be write to log
-            lock.release()
 
+    # return auth result
+    lock.acquire()
+    try:
+        for user in packets:
+            for result in results:
+                if (user['user_uid'] == result['user_uid']):
+                    user['auth'] = result['auth']
+    except Exception as e:
+        console.log(threading.current_thread().name + 'somthing wrong: ')
+        console.log(e)
+        # exception should be write to log
         lock.release()
+
+    lock.release()
 
 
 def reduceUser(packets):
@@ -94,21 +91,27 @@ def fetchHomework(packets):
     userHW = []
     for user in packets:
         loginInstance = loginPortal(user['username'], user['password'])
-        HWInstance = Homework(loginInstance.request)
-        for lesson in user['lessons']:
-            hwList = HWInstance.getHomeworkList(lesson)
-            userHW = userHW + map(lambda el: {
-                'user_uid': user['user_uid'],
-                'lesson_id': lesson['lesson_id'],
-                'wk_id': el['wk_id'],
-                'grade': el['grade'],
-                'comment': el['comment'],
-                'uploadFile': el['uploadFile']
-            }, hwList['homework'])
-            homeworks.append({
-                'lesson_id': lesson['lesson_id'],
-                'hw': hwList['homework']
-            })
+        try:
+            loginInstance.login()
+            HWInstance = Homework(loginInstance.request)
+            for lesson in user['lessons']:
+                hwList = HWInstance.getHomeworkList(lesson)
+                userHW = userHW + map(lambda el: {
+                    'user_uid': user['user_uid'],
+                    'lesson_id': lesson['lesson_id'],
+                    'wk_id': el['wk_id'],
+                    'grade': el['grade'],
+                    'comment': el['comment'],
+                    'uploadFile': el['uploadFile']
+                }, hwList['homework'])
+                homeworks.append({
+                    'lesson_id': lesson['lesson_id'],
+                    'hw': hwList['homework']
+                })
+        except Exception as e:
+            console.log('fetchHomework - ' + threading.current_thread().name + ' somthing wrong: ')
+            console.log(e)
+
     lock.acquire()
     output['homework'] = output['homework'] + homeworks if 'homework' in output else list(homeworks)
     output['userHW'] = output['userHW'] + userHW if 'userHW' in output else list(userHW)
@@ -120,9 +123,10 @@ def fetchMaterial(packets):
     materials = []
     for user in packets:
         loginInstance = loginPortal(user['username'], user['password'])
-        materialInstance = Material(loginInstance.request)
-        for lesson in user['lessons']:
-            try:
+        try:
+            loginInstance.login()
+            materialInstance = Material(loginInstance.request)
+            for lesson in user['lessons']:
                 mtr = materialInstance.getMaterialList(lesson)
                 materials = materials + map(
                     lambda el: {
@@ -134,22 +138,23 @@ def fetchMaterial(packets):
                         'video': el['video'],
                         'date': el['date']
                     }, mtr['materials'])
-            except Exception as e:
-                print(e)
-                # should write to log
-                pass
+        except Exception as e:
+            console.log('fetchMaterials - ' + threading.current_thread().name + ' somthing wrong: ')
+            console.log(e)
+
     lock.acquire()
     output['material'] = output['material'] + materials if 'material' in output else list(materials)
     lock.release()
 
-def fetchNew(packets):
+def fetchNews(packets):
     global lock, output
     news = []
     for user in packets:
         loginInstance = loginPortal(user['username'], user['password'])
-        newsInstance = News(loginInstance.request)
-        for lesson in user['lessons']:
-            try:
+        try:
+            loginInstance.login()
+            newsInstance = News(loginInstance.request)
+            for lesson in user['lessons']:
                 n = newsInstance.getNoticeList(lesson)
                 news = news + map(
                     lambda el: {
@@ -162,14 +167,22 @@ def fetchNew(packets):
                         'attach': el['attach']
                     }, n['noticelist']
                 )
-            except PortalException:
-                # should write to log
+        except PortalException as pe:
+            if pe.code == 403:
                 pass
+        except Exception as e:
+            console.log('fetchNews - ' + threading.current_thread().name + ' somthing wrong: ')
+            console.log(e)
+
     lock.acquire()
     output['news'] = output['news'] + news if 'news' in output else list(news)
     lock.release()
 
 if __name__ == '__main__':
+    console.log('Main thread is ' + threading.current_thread().name)
+    # Create Thread pool
+    threadPool = threadpool.ThreadPool(MAX_THREAD_NUM)
+
     # saving output
     output = {}
 
@@ -179,62 +192,59 @@ if __name__ == '__main__':
     # loading data
     with open(swap_filename) as swap_packet:
         packets = json.load(swap_packet)
-    #os.remove(swap_filename)
+    os.remove(swap_filename)
 
     # Mutiple Thread
     lock = threading.Lock()
 
-    # Auth user
+    ### Auth user
     threads = len(packets) / THREAD_PRE_USER['AUTH'] if len(packets) % THREAD_PRE_USER['AUTH'] == 0 else len(packets) / THREAD_PRE_USER['AUTH'] + 1
-    taskThreads = []
-    for i in xrange(threads):
-        task = AuthUser(lock = lock, name = 'auth user thread - ' + str(i), packet = packets[i * THREAD_PRE_USER['AUTH']: (i + 1) * THREAD_PRE_USER['AUTH']])
-        task.start()
-        taskThreads.append(task)
 
-    for thread in taskThreads:
-        try:
-            thread.join()
-        except Exception:
-            print('I Catch you outside.')
+    # dispatch packet for each threads
+    taskPacket = []
+    for i in xrange(threads):
+        taskPacket.append(packets[i * THREAD_PRE_USER['AUTH']: (i + 1) * THREAD_PRE_USER['AUTH']])
+
+    # Request thread
+    reqThreads = threadpool.makeRequests(authUser, taskPacket)
+    [threadPool.putRequest(req) for req in reqThreads]
+    console.log('Waiting for authUser.')
+    threadPool.wait()
+    console.log('authUser done.')
 
     # Remove auth failed
-    output['invalid'] = map(lambda user: user['user_uid'], filter(lambda user: user['auth'] == False, packets))
-    packets = filter(lambda user: user['auth'] == True, packets)
+    try:
+        output['invalid'] = map(lambda user: user['user_uid'], filter(lambda user: user['auth'] == False, packets))
+        packets = filter(lambda user: user['auth'] == True, packets)
+    except Exception as e:
+        console.log(threading.current_thread().name + ' Something wrong:')
+        console.log(e)
 
     # perpare taskPacket for news & material
     taskPacket = reduceUser(packets)
 
-    # Clear taskThreads
-    taskThreads = []
+    # clear reqThreads
+    reqThreads = []
 
-    # Assign Homework Task
+    # dispatch Homework Task packet
     threads = len(packets) / THREAD_PRE_USER['HOMEWORK'] if len(packets) % THREAD_PRE_USER['HOMEWORK'] == 0 else len(packets) / THREAD_PRE_USER['HOMEWORK'] + 1
-    for i in xrange(threads):
-        task = threading.Thread(target = fetchHomework, kwargs = {'packets': packets[i * THREAD_PRE_USER['HOMEWORK']: (i + 1) * THREAD_PRE_USER['HOMEWORK']]}, name =  'thread-homework-'  + str(i))
-        task.start()
-        time.sleep(1)
-        taskThreads.append(task)
+    HWTaskPackets = [packets[i * THREAD_PRE_USER['HOMEWORK']: (i + 1) * THREAD_PRE_USER['HOMEWORK']] for i in xrange(threads)]
 
-    # Assign Material Task
-    threads = len(taskPacket) / THREAD_PRE_USER['MATERIAL'] if len(taskPacket) % THREAD_PRE_USER['MATERIAL'] == 0 else len(taskPacket) / THREAD_PRE_USER['MATERIAL'] + 1
-    for i in xrange(threads):
-        task = threading.Thread(target = fetchMaterial, kwargs = {'packets': packets[i * THREAD_PRE_USER['MATERIAL']: (i + 1) * THREAD_PRE_USER['MATERIAL']]}, name =  'thread-material-'  + str(i))
-        task.start()
-        time.sleep(1)
-        taskThreads.append(task)
+    reqThreads = reqThreads + threadpool.makeRequests(fetchHomework, HWTaskPackets)
 
-    # Assign News Task
-    threads = len(taskPacket) / THREAD_PRE_USER['NEWS'] if len(taskPacket) % THREAD_PRE_USER['NEWS'] == 0 else len(taskPacket) / THREAD_PRE_USER['NEWS'] + 1
-    for i in xrange(threads):
-        task = threading.Thread(target = fetchNew, kwargs = {'packets': packets[i * THREAD_PRE_USER['NEWS']: (i + 1) * THREAD_PRE_USER['NEWS']]}, name =  'thread-news-'  + str(i))
-        task.start()
-        time.sleep(1)
-        taskThreads.append(task)
 
-    # Waiting
-    for thread in taskThreads:
-        thread.join()
+    # dispatch Material & News Task
+    threads = len(taskPacket) / THREAD_PRE_USER['NM'] if len(taskPacket) % THREAD_PRE_USER['NM'] == 0 else len(taskPacket) / THREAD_PRE_USER['NM'] + 1
+    taskPackets = [taskPacket[i * THREAD_PRE_USER['NM']: (i + 1) * THREAD_PRE_USER['NM']] for i in xrange(threads)]
+    reqThreads = reqThreads + threadpool.makeRequests(fetchMaterial, taskPackets)
+    reqThreads = reqThreads + threadpool.makeRequests(fetchNews, taskPackets)
+
+
+    # Execute task
+    [threadPool.putRequest(req) for req in reqThreads]
+    console.log('Waiting for crawler.')
+    threadPool.wait()
+    console.log('crawler done.')
 
     # merge data & remove dupicate (for homework)
     output['homework'] = [el for el in output['homework'] if el not in output['homework'][output['homework'].index(el) + 1:]]
