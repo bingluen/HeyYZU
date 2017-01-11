@@ -203,7 +203,7 @@ if __name__ == '__main__':
     # dispatch packet for each threads
     taskPacket = []
     for i in xrange(threads):
-        taskPacket.append(packets[i * THREAD_PRE_USER['AUTH']: (i + 1) * THREAD_PRE_USER['AUTH']])
+        taskPacket.append(packets[i * THREAD_PRE_USER['AUTH']: (i + 1) * THREAD_PRE_USER['AUTH'] - 1])
 
     # Request thread
     reqThreads = threadpool.makeRequests(authUser, taskPacket)
@@ -228,14 +228,14 @@ if __name__ == '__main__':
 
     # dispatch Homework Task packet
     threads = len(packets) / THREAD_PRE_USER['HOMEWORK'] if len(packets) % THREAD_PRE_USER['HOMEWORK'] == 0 else len(packets) / THREAD_PRE_USER['HOMEWORK'] + 1
-    HWTaskPackets = [packets[i * THREAD_PRE_USER['HOMEWORK']: (i + 1) * THREAD_PRE_USER['HOMEWORK']] for i in xrange(threads)]
+    HWTaskPackets = [packets[i * THREAD_PRE_USER['HOMEWORK']: (i + 1) * THREAD_PRE_USER['HOMEWORK'] - 1] for i in xrange(threads)]
 
     reqThreads = reqThreads + threadpool.makeRequests(fetchHomework, HWTaskPackets)
 
 
     # dispatch Material & News Task
     threads = len(taskPacket) / THREAD_PRE_USER['NM'] if len(taskPacket) % THREAD_PRE_USER['NM'] == 0 else len(taskPacket) / THREAD_PRE_USER['NM'] + 1
-    taskPackets = [taskPacket[i * THREAD_PRE_USER['NM']: (i + 1) * THREAD_PRE_USER['NM']] for i in xrange(threads)]
+    taskPackets = [taskPacket[i * THREAD_PRE_USER['NM']: (i + 1) * THREAD_PRE_USER['NM'] - 1] for i in xrange(threads)]
     reqThreads = reqThreads + threadpool.makeRequests(fetchMaterial, taskPackets)
     reqThreads = reqThreads + threadpool.makeRequests(fetchNews, taskPackets)
 
@@ -249,6 +249,24 @@ if __name__ == '__main__':
     # merge data & remove dupicate (for homework)
     output['homework'] = [el for el in output['homework'] if el not in output['homework'][output['homework'].index(el) + 1:]]
     output['homework'] = filter(lambda el: len(el['hw']) > 0, output['homework'])
+
+    # reduce homework
+    sub = []
+    for el in output['homework']:
+        for hw in el['hw']:
+            sub.append({
+                'lesson_id': el['lesson_id'],
+                'wk_id': hw['wk_id'],
+                'subject': hw['title'],
+                'description': hw['description'],
+                'schedule': hw['schedule'],
+                'freeSubmit': hw['freeSubmit'],
+                'attach': hw['attach'],
+                'deadline': hw['deadline'],
+                'isGroup': hw['isGroup']
+            })
+
+    output['homework'] = sub
 
     # Write output to file
     # print (json.dumps(output, indent = 4))
