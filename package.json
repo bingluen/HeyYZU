@@ -28,6 +28,7 @@
     "fcm-node": "^1.0.15",
     "fs-extra": "^0.26.5",
     "mime-types": "^2.1.10",
+    "moment-timezone": "^0.5.11",
     "mysql": "^2.10.2",
     "python-shell": "^0.3.0",
     "ursa": "^0.9.4",
