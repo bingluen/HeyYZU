@@ -1,4 +1,5 @@
-import time
+import time, sys
 
 def log(msg):
-    print('[' + time.ctime() + '] ' + str(msg))
+    sys.stdout.write(str(msg))
+    sys.stdout.flush()
