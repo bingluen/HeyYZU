@@ -319,26 +319,6 @@ function task() {
       });
     })
 
-    // console.log(
-    //   Object.keys(packet['news'][5]), Object.keys(packet['news'][5].attach)
-    // )
-    // console.log(
-    //   Object.keys(packet['material'][0]),
-    //   Object.keys(packet['material'][0]['lecture'])
-    // )
-    // console.log(
-    //   Object.keys(packet['homework'][0]),
-    //   Object.keys(packet['homework'].find((el) => el.attach != null)['attach'])
-    // )
-    //
-    // console.log(
-    //   Object.keys(packet['userHW'][0])
-    // )
-    //
-    // console.log(
-    //   packet['material'].find((el) => el.lecture != null)
-    // )
-    return Promise.resolve('db write done');
   }
 
   lookupUser
@@ -357,21 +337,7 @@ function task() {
       console.error(err);
     })
 
-  // write(fs.readJSONSync(__refreshBase + '460e8a682d555a94c2e293122a0b1b75b99f3d48'))
-  // .then((msg) => {
-  //   console.log(msg)
-  // }, (err) => {
-  //   console.err(err)
-  // })
-
-  // runPy(fs.readJSONSync(__refreshBase + 'ed28019d18b6b4b0d408d263677b3f0e00794d8b'))
-  //   .then((msg) => {
-  //     console.log(msg)
-  //   }, (err) => {
-  //     console.error(err)
-  //   })
-
 }
 
-// setInterval(task, timeInterval);
-task()
+task();
+setInterval(task, timeInterval);
