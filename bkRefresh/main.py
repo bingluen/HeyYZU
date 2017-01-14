@@ -273,6 +273,7 @@ if __name__ == '__main__':
     [threadPool.putRequest(req) for req in reqThreads]
     console_log('Waiting for crawler.')
     threadPool.wait()
+    threadPool.dismissWorkers(MAX_THREAD_NUM, do_join=True)
     console_log('crawler done.')
 
     # merge data & remove dupicate (for homework)
