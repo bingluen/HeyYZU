@@ -28,7 +28,9 @@ function task() {
     + " SELECT `user_uid`, student_lesson.`lesson_id`, `courseCode`, `lessonYear`, `lessonSemester`, `lessonClass` "
     + " FROM `student_lesson` "
     + " LEFT JOIN lesson ON student_lesson.`lesson_id` = lesson.`lesson_id` "
-    + " WHERE `lessonYear` = ? AND `lessonSemester` = ?) as lesson "
+    + " WHERE `lessonYear` = ? AND `lessonSemester` = ? "
+    + " AND EXISTS (SELECT distinct owner_user FROM device) "
+    + ") as lesson "
     + " ON lesson.`user_uid` = student.`user_uid`;";
     let params = [helper.getYearNow(), helper.getSemesterNow()];
     dbHelper.query(qs, params, (err, result) => {
@@ -111,7 +113,9 @@ function task() {
       });
 
     }).then(() => {
-      return fs.readJSONSync(__refreshBase + swap);
+      let result = fs.readJSONSync(__refreshBase + swap);
+      fs.removeSync(__refreshBase + swap)
+      return result;
     })
     ;
   }
@@ -213,9 +217,9 @@ function task() {
       params.push(el.lesson_id, el.wk_id,
         el.subject, el.schedule, el.description,
         el.isGroup, el.freeSubmit, el.deadline,
-        el.lecture.id ? el.lecture.id : null,
-        el.lecture.type ? el.lecture.type : null,
-        el.lecture.filename ? el.lecture.filename : null
+        el.attach.id ? el.attach.id : null,
+        el.attach.type ? el.attach.type : null,
+        el.attach.filename ? el.attach.filename : null
       )
     })
     qs += ";"
@@ -282,7 +286,6 @@ function task() {
       + "  AND attachPortalFilename = portalFilename "
       + "SET temp_notice.attach_id = attachments.attach_id;"
 
-
     // update news
     qs += "INSERT INTO notices (lesson_id, portalId, title, author, content, attach_id, date) "
       + "SELECT lesson_id, portalId, title, author, content, attach_id, date FROM temp_notice as n "
@@ -309,16 +312,35 @@ function task() {
       + "SELECT user_uid, homework_id, grade, comment FROM temp_user_hw as uh "
       + "ON DUPLICATE KEY UPDATE grade = uh.grade, comment = uh.comment;"
 
+    // remove invalid user_uid device
+
+    qs += "DELETE FROM device WHERE owner_user IN ("
+    packet.invalid.forEach((el, i, arr) => {
+      qs += "?"
+      if (i < arr.length - 1) {
+        qs += ", "
+      } else {
+        qs += ");"
+      }
+      params.push(el)
+    });
+
     return new Promise((rsolve, reject) => {
       dbHelper.query(qs, params, (err, result) => {
         if (err) {
           reject(err)
         } else {
-          resolve('db write done');
+          fs.writeJSONSync(__refreshBase + 'sql_exec_result.json', result);
+          resolve(result);
         }
       });
     })
 
+  }
+
+  let pushNotification = (packet) => {
+    console.log('to push notfication to user');
+    console.log(packet);
   }
 
   lookupUser
@@ -331,13 +353,17 @@ function task() {
     .then((packet) => {
       return write(packet);
     })
+    .then((packet) => {
+      return pushNotification(packet)
+    })
     .then((result) => {
       console.log(result);
+      setTimeout(task, timeInterval);
     }, (err) => {
       console.error(err);
+      setTimeout(task, timeInterval);;
     })
 
 }
 
 task();
-setInterval(task, timeInterval);
