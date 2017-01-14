@@ -111,7 +111,7 @@ function task() {
       });
 
     }).then(() => {
-      return fs.readJSONSync(swap);
+      return fs.readJSONSync(__refreshBase + swap);
     })
     ;
   }
