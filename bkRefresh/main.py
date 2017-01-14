@@ -92,12 +92,16 @@ def fetchHomework(packets):
     global lock, output
     homeworks = []
     userHW = []
+    currentUser = ''
+    currentLesson = ''
     for user in packets:
         loginInstance = loginPortal(user['username'], user['password'])
         try:
+            currentUser = user['username']
             loginInstance.login()
             HWInstance = Homework(loginInstance.request)
             for lesson in user['lessons']:
+                currentLesson = lesson['lesson_id']
                 hwList = HWInstance.getHomeworkList(lesson)
                 userHW = userHW + map(lambda el: {
                     'user_uid': user['user_uid'],
@@ -114,6 +118,8 @@ def fetchHomework(packets):
         except Exception as e:
             console_log('fetchHomework - ' + threading.current_thread().name + ' somthing wrong: ')
             console_log(e)
+            console_log('user - ' + currentUser + ', lesson - ' + currentLesson)
+            pass
 
     lock.acquire()
     output['homework'] = output['homework'] + homeworks if 'homework' in output else list(homeworks)
@@ -124,12 +130,16 @@ def fetchHomework(packets):
 def fetchMaterial(packets):
     global lock, output
     materials = []
+    currentUser = ''
+    currentLesson = ''
     for user in packets:
         loginInstance = loginPortal(user['username'], user['password'])
         try:
+            currentUser = user['username']
             loginInstance.login()
             materialInstance = Material(loginInstance.request)
             for lesson in user['lessons']:
+                currentLesson = lesson['lesson_id']
                 mtr = materialInstance.getMaterialList(lesson)
                 materials = materials + map(
                     lambda el: {
@@ -144,6 +154,8 @@ def fetchMaterial(packets):
         except Exception as e:
             console_log('fetchMaterials - ' + threading.current_thread().name + ' somthing wrong: ')
             console_log(e)
+            console_log('user - ' + currentUser + ', lesson - ' + currentLesson)
+            pass
 
     lock.acquire()
     output['material'] = output['material'] + materials if 'material' in output else list(materials)
@@ -152,12 +164,16 @@ def fetchMaterial(packets):
 def fetchNews(packets):
     global lock, output
     news = []
+    currentUser = ''
+    currentLesson = ''
     for user in packets:
         loginInstance = loginPortal(user['username'], user['password'])
         try:
+            currentUser = user['username']
             loginInstance.login()
             newsInstance = News(loginInstance.request)
             for lesson in user['lessons']:
+                currentLesson = lesson['lesson_id']
                 n = newsInstance.getNoticeList(lesson)
                 news = news + map(
                     lambda el: {
@@ -176,6 +192,8 @@ def fetchNews(packets):
         except Exception as e:
             console_log('fetchNews - ' + threading.current_thread().name + ' somthing wrong: ')
             console_log(e)
+            console_log('user - ' + currentUser + ', lesson - ' + currentLesson)
+            pass
 
     lock.acquire()
     output['news'] = output['news'] + news if 'news' in output else list(news)
