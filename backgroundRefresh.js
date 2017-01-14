@@ -6,7 +6,7 @@ global.__SystemBase = __dirname + '/'
 
 var dbHelper = require(__mobileAPIBase + 'module/dbHelper');
 var helper = require(__mobileAPIBase + 'module/helper');
-// var rsa = require(__mobileAPIBase + 'module/rsa');
+var rsa = require(__mobileAPIBase + 'module/rsa');
 var fs = require('fs-extra');
 var crypto = require('crypto');
 var spawn = require('child_process').spawn,
@@ -19,67 +19,67 @@ function task() {
   let random = Math.random().toString();
   let swap = crypto.createHash('sha1').update(current_date + random).digest('hex');
 
-  // let lookupUser = new Promise((resolve, reject) => {
-  //
-  //   console.log('[' + (new Date()).toString() + ']Look up user')
-  //
-  //   let qs = "SELECT student.`user_uid` as `user_uid`, `portalUsername`, `portalPassword`, lesson.`lesson_id`, `courseCode`, `lessonYear`, `lessonSemester`, `lessonClass` "
-  //   + " FROM student RIGHT JOIN ( "
-  //   + " SELECT `user_uid`, student_lesson.`lesson_id`, `courseCode`, `lessonYear`, `lessonSemester`, `lessonClass` "
-  //   + " FROM `student_lesson` "
-  //   + " LEFT JOIN lesson ON student_lesson.`lesson_id` = lesson.`lesson_id` "
-  //   + " WHERE `lessonYear` = ? AND `lessonSemester` = ?) as lesson "
-  //   + " ON lesson.`user_uid` = student.`user_uid`;";
-  //   let params = [helper.getYearNow(), helper.getSemesterNow()];
-  //   dbHelper.query(qs, params, (err, result) => {
-  //     if (err) {
-  //       reject(err);
-  //     } else {
-  //       resolve(result);
-  //     }
-  //   });
-  // })
-  //
-  // let decrypt = (userPacks) => {
-  //   return userPacks.map((el) => ({
-  //     user_uid: el.user_uid,
-  //     username: el.portalUsername,
-  //     password: el.portalPassword,
-  //     lesson_id: el.lesson_id,
-  //     courseCode: el.courseCode,
-  //     lessonYear: el.lessonYear,
-  //     lessonSemester: el.lessonSemester,
-  //     lessonClass: el.lessonClass
-  //   })).reduce((p, el, index, array) => {
-  //     let user = p.find((els) => els.user_uid === el.user_uid)
-  //     if(user === undefined) {
-  //       p.push({
-  //         user_uid: el.user_uid,
-  //         username: el.username,
-  //         password: el.password,
-  //         lessons: [{
-  //           lesson_id: el.lesson_id,
-  //           courseCode: el.courseCode,
-  //           lessonYear: el.lessonYear,
-  //           lessonSemester: el.lessonSemester,
-  //           lessonClass: el.lessonClass
-  //         }]
-  //       })
-  //     } else {
-  //       user.lessons.push({
-  //         lesson_id: el.lesson_id,
-  //         courseCode: el.courseCode,
-  //         lessonYear: el.lessonYear,
-  //         lessonSemester: el.lessonSemester,
-  //         lessonClass: el.lessonClass
-  //       })
-  //     }
-  //     return p;
-  //   }, []).map((el) => {
-  //     el.password = rsa.priDecrypt(el.password);
-  //     return el;
-  //   })
-  // }
+  let lookupUser = new Promise((resolve, reject) => {
+
+    console.log('[' + (new Date()).toString() + ']Look up user')
+
+    let qs = "SELECT student.`user_uid` as `user_uid`, `portalUsername`, `portalPassword`, lesson.`lesson_id`, `courseCode`, `lessonYear`, `lessonSemester`, `lessonClass` "
+    + " FROM student RIGHT JOIN ( "
+    + " SELECT `user_uid`, student_lesson.`lesson_id`, `courseCode`, `lessonYear`, `lessonSemester`, `lessonClass` "
+    + " FROM `student_lesson` "
+    + " LEFT JOIN lesson ON student_lesson.`lesson_id` = lesson.`lesson_id` "
+    + " WHERE `lessonYear` = ? AND `lessonSemester` = ?) as lesson "
+    + " ON lesson.`user_uid` = student.`user_uid`;";
+    let params = [helper.getYearNow(), helper.getSemesterNow()];
+    dbHelper.query(qs, params, (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
+  })
+
+  let decrypt = (userPacks) => {
+    return userPacks.map((el) => ({
+      user_uid: el.user_uid,
+      username: el.portalUsername,
+      password: el.portalPassword,
+      lesson_id: el.lesson_id,
+      courseCode: el.courseCode,
+      lessonYear: el.lessonYear,
+      lessonSemester: el.lessonSemester,
+      lessonClass: el.lessonClass
+    })).reduce((p, el, index, array) => {
+      let user = p.find((els) => els.user_uid === el.user_uid)
+      if(user === undefined) {
+        p.push({
+          user_uid: el.user_uid,
+          username: el.username,
+          password: el.password,
+          lessons: [{
+            lesson_id: el.lesson_id,
+            courseCode: el.courseCode,
+            lessonYear: el.lessonYear,
+            lessonSemester: el.lessonSemester,
+            lessonClass: el.lessonClass
+          }]
+        })
+      } else {
+        user.lessons.push({
+          lesson_id: el.lesson_id,
+          courseCode: el.courseCode,
+          lessonYear: el.lessonYear,
+          lessonSemester: el.lessonSemester,
+          lessonClass: el.lessonClass
+        })
+      }
+      return p;
+    }, []).map((el) => {
+      el.password = rsa.priDecrypt(el.password);
+      return el;
+    })
+  }
 
   let runPy = (packet) => {
 
@@ -308,15 +308,15 @@ function task() {
       + "SELECT user_uid, homework_id, grade, comment FROM temp_user_hw as uh "
       + "ON DUPLICATE KEY UPDATE grade = uh.grade, comment = uh.comment;"
 
-    // return new Promise((rsolve, reject) => {
-    //   dbHelper.query(qs, params, (err, result) => {
-    //     if (err) {
-    //       reject(err)
-    //     } else {
-    //       resolve('db write done');
-    //     }
-    //   });
-    // })
+    return new Promise((rsolve, reject) => {
+      dbHelper.query(qs, params, (err, result) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve('db write done');
+        }
+      });
+    })
 
     // console.log(
     //   Object.keys(packet['news'][5]), Object.keys(packet['news'][5].attach)
@@ -340,21 +340,21 @@ function task() {
     return Promise.resolve('db write done');
   }
 
-  // lookupUser
-  //   .then((packet) => {
-  //     return decrypt(packet);
-  //   })
-  //   .then((packet) => {
-  //     return runPy(packet);
-  //   })
-  //   .then((packet) => {
-  //     return write(packet);
-  //   })
-  //   .then((result) => {
-  //     console.log(result);
-  //   }, (err) => {
-  //     console.error(err);
-  //   })
+  lookupUser
+    .then((packet) => {
+      return decrypt(packet);
+    })
+    .then((packet) => {
+      return runPy(packet);
+    })
+    .then((packet) => {
+      return write(packet);
+    })
+    .then((result) => {
+      console.log(result);
+    }, (err) => {
+      console.error(err);
+    })
 
   // write(fs.readJSONSync(__refreshBase + '460e8a682d555a94c2e293122a0b1b75b99f3d48'))
   // .then((msg) => {
@@ -363,12 +363,12 @@ function task() {
   //   console.err(err)
   // })
 
-  runPy(fs.readJSONSync(__refreshBase + 'ed28019d18b6b4b0d408d263677b3f0e00794d8b'))
-    .then((msg) => {
-      console.log(msg)
-    }, (err) => {
-      console.error(err)
-    })
+  // runPy(fs.readJSONSync(__refreshBase + 'ed28019d18b6b4b0d408d263677b3f0e00794d8b'))
+  //   .then((msg) => {
+  //     console.log(msg)
+  //   }, (err) => {
+  //     console.error(err)
+  //   })
 
 }
 

@@ -25,7 +25,7 @@ class PortalException(Exception):
         return 'PortalException(' + str(self.code) +'):' + str(self.status)
 
     def __str__(self):
-        return 'PortalException(' + str(self.code) +'):' + str(self.status) + '\n' + str(self.err)
+        return 'PortalException(' + str(self.code) +'):' + str(self.status) + ' - ' + str(self.err)
 
 class loginPortal:
     def __init__(self, username, password):
