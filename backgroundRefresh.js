@@ -163,7 +163,7 @@ function task() {
       + "  deadline datetime,  "
       + "  attachPortalId int(10) unsigned,  "
       + "  attachPortalType tinyint(2) unsigned, "
-      + "  attachPortalFilename varchar(200), "
+      + "  attachPortalFilename varchar(200) "
       + "); "
 
     qs += "CREATE TEMPORARY TABLE IF NOT EXISTS temp_user_hw ("
@@ -179,30 +179,30 @@ function task() {
 
     qs += "INSERT INTO temp_notice (lesson_id, portalId, title, author, content, date, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
     packet.news.forEach((el, i, arr) => {
-      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?) "
       if (i < arr.length - 1) {
         qs += ", "
       }
       params.push(el.lesson_id, el.portalId,
         el.subject, el.author, el.content,
-        el.date, el.attach.AttachmentID ? el.attach.AttachmentID : null,
-        el.attach.CourseType ? el.attach.CourseType : null,
-        el.attach.AttachmentFileName ? el.attach.AttachmentFileName : null
+        el.date, el.attach ? el.attach.AttachmentID : null,
+        el.attach ? el.attach.CourseType : null,
+        el.attach ? el.attach.AttachmentFileName : null
       )
     })
     qs += ";"
 
     qs += "INSERT INTO temp_material (lesson_id, schedule, outline, date, link, video, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
     packet.material.forEach((el, i, arr) => {
-      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?) "
       if (i < arr.length - 1) {
         qs += ", "
       }
       params.push(el.lesson_id, el.schedule,
         el.outline, el.date, el.link,
-        el.video, el.lecture.id ? el.lecture.id : null,
-        el.lecture.type ? el.lecture.type : null,
-        el.lecture.filename ? el.lecture.filename : null
+        el.video, el.lecture ? el.lecture.id : null,
+        el.lecture ? el.lecture.type : null,
+        el.lecture ? el.lecture.filename : null
       )
     })
     qs += ";"
@@ -210,16 +210,16 @@ function task() {
 
     qs += "INSERT INTO temp_homework (lesson_id, wkId, title, schedule, description, isGroup, freeSubmit, deadline, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
     packet.homework.forEach((el, i, arr) => {
-      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
       if (i < arr.length - 1) {
         qs += ", "
       }
       params.push(el.lesson_id, el.wk_id,
         el.subject, el.schedule, el.description,
         el.isGroup, el.freeSubmit, el.deadline,
-        el.attach.id ? el.attach.id : null,
-        el.attach.type ? el.attach.type : null,
-        el.attach.filename ? el.attach.filename : null
+        el.attach ? el.attach.id : null,
+        el.attach ? el.attach.type : null,
+        el.attach ? el.attach.filename : null
       )
     })
     qs += ";"
@@ -272,24 +272,24 @@ function task() {
 
     // update attach_id for temporary table
     qs += "UPDATE attachments INNER JOIN temp_homework ON "
-      + "  attachPortalId = portalId "
+      + "  temp_homework.attachPortalId = attachments.portalId "
       + "  AND attachPortalFilename = portalFilename "
       + "SET temp_homework.attach_id = attachments.attach_id;"
 
     qs += "UPDATE attachments INNER JOIN temp_material ON "
-      + "  attachPortalId = portalId "
+      + "  temp_material.attachPortalId = attachments.portalId "
       + "  AND attachPortalFilename = portalFilename "
       + "SET temp_material.attach_id = attachments.attach_id;"
 
     qs += "UPDATE attachments INNER JOIN temp_notice ON "
-      + "  attachPortalId = portalId "
+      + "  temp_notice.attachPortalId = attachments.portalId "
       + "  AND attachPortalFilename = portalFilename "
       + "SET temp_notice.attach_id = attachments.attach_id;"
 
     // update news
     qs += "INSERT INTO notices (lesson_id, portalId, title, author, content, attach_id, date) "
       + "SELECT lesson_id, portalId, title, author, content, attach_id, date FROM temp_notice as n "
-      + "ON DUPLICATE KEY UPDATE lesson_id = n.lesson_id, title = n.title, author = n.author, content = n.centent, attach_id = n.attach_id, date = n.date;"
+      + "ON DUPLICATE KEY UPDATE lesson_id = n.lesson_id, title = n.title, author = n.author, content = n.content, attach_id = n.attach_id, date = n.date;"
 
     // update material
     qs += "TRUNCATE TABLE materials;"
@@ -325,7 +325,7 @@ function task() {
       params.push(el)
     });
 
-    return new Promise((rsolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbHelper.query(qs, params, (err, result) => {
         if (err) {
           reject(err)
