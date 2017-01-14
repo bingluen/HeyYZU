@@ -98,6 +98,7 @@ function task() {
       });
 
       ps.stderr.on('data', function(err) {
+        isErr = true
         console.error('[' + (new Date()).toString() + ']' + err);
       });
 
