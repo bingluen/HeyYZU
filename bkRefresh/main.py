@@ -118,7 +118,7 @@ def fetchHomework(packets):
         except Exception as e:
             console_log('fetchHomework - ' + threading.current_thread().name + ' somthing wrong: ')
             console_log(e)
-            console_log('user - ' + currentUser + ', lesson - ' + currentLesson)
+            console_log('user - ' + currentUser + ', lesson - ' + str(currentLesson))
             pass
 
     lock.acquire()
@@ -154,7 +154,7 @@ def fetchMaterial(packets):
         except Exception as e:
             console_log('fetchMaterials - ' + threading.current_thread().name + ' somthing wrong: ')
             console_log(e)
-            console_log('user - ' + currentUser + ', lesson - ' + currentLesson)
+            console_log('user - ' + currentUser + ', lesson - ' + str(currentLesson))
             pass
 
     lock.acquire()
@@ -192,7 +192,7 @@ def fetchNews(packets):
         except Exception as e:
             console_log('fetchNews - ' + threading.current_thread().name + ' somthing wrong: ')
             console_log(e)
-            console_log('user - ' + currentUser + ', lesson - ' + currentLesson)
+            console_log('user - ' + currentUser + ', lesson - ' + str(currentLesson))
             pass
 
     lock.acquire()
