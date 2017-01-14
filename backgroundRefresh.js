@@ -7,13 +7,22 @@ global.__SystemBase = __dirname + '/'
 var dbHelper = require(__mobileAPIBase + 'module/dbHelper');
 var helper = require(__mobileAPIBase + 'module/helper');
 var rsa = require(__mobileAPIBase + 'module/rsa');
-var PythonShell = require('python-shell');
 var fs = require('fs-extra');
 var crypto = require('crypto');
+var spawn = require('child_process').spawn,
+
+
 timeInterval = 15 * 60 * 1000;
 
 function task() {
+  let current_date = (new Date()).valueOf().toString();
+  let random = Math.random().toString();
+  let swap = crypto.createHash('sha1').update(current_date + random).digest('hex');
+
   let lookupUser = new Promise((resolve, reject) => {
+
+    console.log('[' + (new Date()).toString() + ']Look up user')
+
     let qs = "SELECT student.`user_uid` as `user_uid`, `portalUsername`, `portalPassword`, lesson.`lesson_id`, `courseCode`, `lessonYear`, `lessonSemester`, `lessonClass` "
     + " FROM student RIGHT JOIN ( "
     + " SELECT `user_uid`, student_lesson.`lesson_id`, `courseCode`, `lessonYear`, `lessonSemester`, `lessonClass` "
@@ -73,33 +82,262 @@ function task() {
   }
 
   let runPy = (packet) => {
-    let current_date = (new Date()).valueOf().toString();
-    let random = Math.random().toString();
-    let swap = crypto.createHash('sha1').update(current_date + random).digest('hex');
+
+    console.log('[' + (new Date()).toString() + ']Running python')
+
+
+    fs.writeJSONSync(__refreshBase + swap, packet);
 
     return new Promise((resolve, reject) => {
-      let PyOptions = {
-        mode: 'json',
-        scriptPath: __refreshBase,
-        args: [swap]
-      }
-      fs.writeJSONSync(__refreshBase + swap, packet);
-      PythonShell.run('main.py', PyOptions, function (err, results) {
-        if(!err)
-          resolve();
-        else
-        {
-          reject({err: "Can't run python script : " + PyOptions.scriptPath + 'main.py' + ' and error message: ' + err});
+      ps = spawn('python', [ __refreshBase + 'main.py', __refreshBase + swap]);
+
+      let isErr = false;
+
+      ps.stdout.on('data', function(msg) {
+        console.log('[' + (new Date()).toString() + ']' + msg);
+      });
+
+      ps.stderr.on('data', function(err) {
+        isErr = true
+        console.error('[' + (new Date()).toString() + ']' + err);
+      });
+
+      ps.on('close', function(code) {
+        if (!isErr) {
+          resolve()
+        } else {
+          reject("something wrong white runing python script.")
         }
       });
+
     }).then(() => {
-      return fs.readJSONSync(swap);
+      return fs.readJSONSync(__refreshBase + swap);
     })
     ;
   }
 
   let write = (packet) => {
-    console.log(packet);
+    let qs = "";
+    let params = [];
+
+    // create temporary table
+    qs += "CREATE TEMPORARY TABLE IF NOT EXISTS temp_notice ( "
+      + "  lesson_id int(10) unsigned,  "
+      + "  portalId int(10) unsigned,  "
+      + "  title varchar(200),  "
+      + "  author varchar(200),  "
+      + "  content text,  "
+      + "  attach_id int(30) unsigned,  "
+      + "  date datetime,  "
+      + "  attachPortalId int(10) unsigned,  "
+      + "  attachPortalType tinyint(2) unsigned, "
+      + "  attachPortalFilename varchar(200) "
+      + "); "
+
+    qs += "CREATE TEMPORARY TABLE IF NOT EXISTS temp_material ( "
+      + "  lesson_id int(10) unsigned,  "
+      + "  schedule varchar(500) ,  "
+      + "  outline varchar(500),  "
+      + "  date datetime, "
+      + "  attach_id int(30) unsigned,  "
+      + "  link text,  "
+      + "  video text,  "
+      + "  attachPortalId int(10) unsigned,  "
+      + "  attachPortalType tinyint(2) unsigned, "
+      + "  attachPortalFilename varchar(200) "
+      + "); "
+
+    qs += "CREATE TEMPORARY TABLE IF NOT EXISTS temp_homework ( "
+      + "  lesson_id int(10) unsigned,  "
+      + "  wkId int(3) unsigned,  "
+      + "  title varchar(200),  "
+      + "  schedule varchar(200),  "
+      + "  description text,  "
+      + "  attach_id int(30) unsigned,  "
+      + "  isGroup tinyint(1), "
+      + "  freeSubmit tinyint(1), "
+      + "  deadline datetime,  "
+      + "  attachPortalId int(10) unsigned,  "
+      + "  attachPortalType tinyint(2) unsigned, "
+      + "  attachPortalFilename varchar(200), "
+      + "); "
+
+    qs += "CREATE TEMPORARY TABLE IF NOT EXISTS temp_user_hw ("
+      + "  lesson_id int(10) unsigned,  "
+      + "  wkId int(3) unsigned,  "
+      + "  grade int(4), "
+      + "  comment text, "
+      + "  user_uid int(30) unsigned, "
+      + "  homework_id int(30) unsigned "
+      + "); "
+
+    // insert result into temporary table
+
+    qs += "INSERT INTO temp_notice (lesson_id, portalId, title, author, content, date, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
+    packet.news.forEach((el, i, arr) => {
+      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+      if (i < arr.length - 1) {
+        qs += ", "
+      }
+      params.push(el.lesson_id, el.portalId,
+        el.subject, el.author, el.content,
+        el.date, el.attach.AttachmentID ? el.attach.AttachmentID : null,
+        el.attach.CourseType ? el.attach.CourseType : null,
+        el.attach.AttachmentFileName ? el.attach.AttachmentFileName : null
+      )
+    })
+    qs += ";"
+
+    qs += "INSERT INTO temp_material (lesson_id, schedule, outline, date, link, video, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
+    packet.material.forEach((el, i, arr) => {
+      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+      if (i < arr.length - 1) {
+        qs += ", "
+      }
+      params.push(el.lesson_id, el.schedule,
+        el.outline, el.date, el.link,
+        el.video, el.lecture.id ? el.lecture.id : null,
+        el.lecture.type ? el.lecture.type : null,
+        el.lecture.filename ? el.lecture.filename : null
+      )
+    })
+    qs += ";"
+
+
+    qs += "INSERT INTO temp_homework (lesson_id, wkId, title, schedule, description, isGroup, freeSubmit, deadline, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
+    packet.homework.forEach((el, i, arr) => {
+      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+      if (i < arr.length - 1) {
+        qs += ", "
+      }
+      params.push(el.lesson_id, el.wk_id,
+        el.subject, el.schedule, el.description,
+        el.isGroup, el.freeSubmit, el.deadline,
+        el.lecture.id ? el.lecture.id : null,
+        el.lecture.type ? el.lecture.type : null,
+        el.lecture.filename ? el.lecture.filename : null
+      )
+    })
+    qs += ";"
+
+    qs += "INSERT INTO temp_user_hw (lesson_id, wkId, user_uid, grade, comment) VALUES "
+    packet.userHW.forEach((el, i, arr) => {
+      qs += "(?, ?, ?, ?, ?) "
+      if (i < arr.length - 1) {
+        qs += ", "
+      }
+      params.push(el.lesson_id, el.wk_id, el.user_uid, el.grade, el.comment)
+    })
+    qs += ";"
+
+    // insert attachment
+
+    qs += "INSERT INTO attachments (portalId, portalType, portalFilename) "
+      + "SELECT attachPortalId AS portalId, "
+      + "   attachPortalType AS portalType, "
+      + "   attachPortalFilename AS portalFilename "
+      + "FROM temp_notice "
+      + "WHERE attachPortalId IS NOT NULL "
+      + "  AND attachPortalType IS NOT NULL "
+      + "  AND attachPortalFilename IS NOT NULL "
+      + "GROUP BY portalId "
+      + "ON DUPLICATE KEY UPDATE portalId=portalId;"
+
+    qs += "INSERT INTO attachments (portalId, portalType, portalFilename) "
+      + "SELECT attachPortalId AS portalId, "
+      + "   attachPortalType AS portalType, "
+      + "   attachPortalFilename AS portalFilename "
+      + "FROM temp_material "
+      + "WHERE attachPortalId IS NOT NULL "
+      + "  AND attachPortalType IS NOT NULL "
+      + "  AND attachPortalFilename IS NOT NULL "
+      + "GROUP BY portalId "
+      + "ON DUPLICATE KEY UPDATE portalId=portalId;"
+
+
+    qs += "INSERT INTO attachments (portalId, portalType, portalFilename) "
+      + "SELECT attachPortalId AS portalId, "
+      + "   attachPortalType AS portalType, "
+      + "   attachPortalFilename AS portalFilename "
+      + "FROM temp_homework "
+      + "WHERE attachPortalId IS NOT NULL "
+      + "  AND attachPortalType IS NOT NULL "
+      + "  AND attachPortalFilename IS NOT NULL "
+      + "GROUP BY portalId "
+      + "ON DUPLICATE KEY UPDATE portalId=portalId;"
+
+    // update attach_id for temporary table
+    qs += "UPDATE attachments INNER JOIN temp_homework ON "
+      + "  attachPortalId = portalId "
+      + "  AND attachPortalFilename = portalFilename "
+      + "SET temp_homework.attach_id = attachments.attach_id;"
+
+    qs += "UPDATE attachments INNER JOIN temp_material ON "
+      + "  attachPortalId = portalId "
+      + "  AND attachPortalFilename = portalFilename "
+      + "SET temp_material.attach_id = attachments.attach_id;"
+
+    qs += "UPDATE attachments INNER JOIN temp_notice ON "
+      + "  attachPortalId = portalId "
+      + "  AND attachPortalFilename = portalFilename "
+      + "SET temp_notice.attach_id = attachments.attach_id;"
+
+
+    // update news
+    qs += "INSERT INTO notices (lesson_id, portalId, title, author, content, attach_id, date) "
+      + "SELECT lesson_id, portalId, title, author, content, attach_id, date FROM temp_notice as n "
+      + "ON DUPLICATE KEY UPDATE lesson_id = n.lesson_id, title = n.title, author = n.author, content = n.centent, attach_id = n.attach_id, date = n.date;"
+
+    // update material
+    qs += "TRUNCATE TABLE materials;"
+    qs += "INSERT INTO materials (lesson_id, schedule, outline, date, attach_id, link, video) "
+      + "SELECT lesson_id, schedule, outline, date, attach_id, link, video FROM temp_material as m;"
+
+    // update homeworks
+
+    qs += "INSERT INTO homeworks (lesson_id, wkId, title, schedule, description, attach_id, isGroup, freeSubmit, deadline) "
+      + "SELECT lesson_id, wkId, title, schedule, description, attach_id, isGroup, freeSubmit, deadline FROM temp_homework as h "
+      + "ON DUPLICATE KEY UPDATE title = h.title, schedule = h.schedule, description = h.description, attach_id = h.attach_id, isGroup = h.isGroup, freeSubmit = h.freeSubmit, deadline = h.deadline;"
+
+    // update student's homework
+    qs += "UPDATE homeworks as h INNER JOIN temp_user_hw as uh ON "
+      + "  h.lesson_id = uh.lesson_id "
+      + "  AND h.wkId = uh.wkId "
+      + "SET uh.homework_id = h.homework_id;"
+
+    qs += "INSERT INTO student_homeworks (user_uid, homework_id, grade, comment) "
+      + "SELECT user_uid, homework_id, grade, comment FROM temp_user_hw as uh "
+      + "ON DUPLICATE KEY UPDATE grade = uh.grade, comment = uh.comment;"
+
+    return new Promise((rsolve, reject) => {
+      dbHelper.query(qs, params, (err, result) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve('db write done');
+        }
+      });
+    })
+
+    // console.log(
+    //   Object.keys(packet['news'][5]), Object.keys(packet['news'][5].attach)
+    // )
+    // console.log(
+    //   Object.keys(packet['material'][0]),
+    //   Object.keys(packet['material'][0]['lecture'])
+    // )
+    // console.log(
+    //   Object.keys(packet['homework'][0]),
+    //   Object.keys(packet['homework'].find((el) => el.attach != null)['attach'])
+    // )
+    //
+    // console.log(
+    //   Object.keys(packet['userHW'][0])
+    // )
+    //
+    // console.log(
+    //   packet['material'].find((el) => el.lecture != null)
+    // )
     return Promise.resolve('db write done');
   }
 
@@ -119,6 +357,21 @@ function task() {
       console.error(err);
     })
 
+  // write(fs.readJSONSync(__refreshBase + '460e8a682d555a94c2e293122a0b1b75b99f3d48'))
+  // .then((msg) => {
+  //   console.log(msg)
+  // }, (err) => {
+  //   console.err(err)
+  // })
+
+  // runPy(fs.readJSONSync(__refreshBase + 'ed28019d18b6b4b0d408d263677b3f0e00794d8b'))
+  //   .then((msg) => {
+  //     console.log(msg)
+  //   }, (err) => {
+  //     console.error(err)
+  //   })
+
 }
 
-setInterval(task, timeInterval);
+// setInterval(task, timeInterval);
+task()

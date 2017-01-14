@@ -4,6 +4,7 @@
   * BeautifulSoup
   * requests
   * lxml
+  * threadpool
 * Database (choice one on following)
   * MariaDB 10.1.8 or latest (Recommend)
   * MongoDB v3.2.7 or latest (for admin webController)
