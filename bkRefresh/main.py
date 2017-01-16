@@ -200,7 +200,7 @@ def fetchNews(packets):
     lock.release()
 
 def console_log(msg):
-    time.sleep(1)
+    time.sleep(0.01)
     sys.stdout.write(str(msg))
     sys.stdout.flush()
 
