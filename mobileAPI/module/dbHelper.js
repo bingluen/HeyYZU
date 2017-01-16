@@ -27,10 +27,10 @@ module.exports.query = (query, params, cb) => {
 
 module.exports.transaction = (query, params) => {
 	return new Promise((resolve, reject) => {
-		db.pool.getConnection((err, connection) => {
+		dbPool.getConnection((err, connection) => {
 
 			if (err) { reject(err); } // get connection failed
-			
+
 			else {
 				connection.beginTransaction((err) => {
 
