@@ -29,9 +29,10 @@ function task() {
     + " FROM `student_lesson` "
     + " LEFT JOIN lesson ON student_lesson.`lesson_id` = lesson.`lesson_id` "
     + " WHERE `lessonYear` = ? AND `lessonSemester` = ? "
-    + " AND EXISTS (SELECT distinct owner_user FROM device) "
+    + " AND user_uid in (SELECT distinct owner_user FROM device) "
     + ") as lesson "
-    + " ON lesson.`user_uid` = student.`user_uid`;";
+    + " ON lesson.`user_uid` = student.`user_uid`"
+    + "GROUP BY user_uid;"
     let params = [helper.getYearNow(), helper.getSemesterNow()];
     dbHelper.query(qs, params, (err, result) => {
       if (err) {
@@ -124,6 +125,11 @@ function task() {
     let qs = "";
     let params = [];
 
+    // SELECT least id for each TABLE
+    qs += "SELECT 'homeworks' as tableName, max(homework_id) as least_id FROM homeworks "
+      + "UNION SELECT 'notices' as tableName, max(notice_id) as least_id FROM notices "
+      + "UNION SELECT 'materials' as tableName, max(material_id) as least_id FROM materials;"
+
     // create temporary table
     qs += "CREATE TEMPORARY TABLE IF NOT EXISTS temp_notice ( "
       + "  lesson_id int(10) unsigned,  "
@@ -177,62 +183,69 @@ function task() {
 
     // insert result into temporary table
 
-    qs += "INSERT INTO temp_notice (lesson_id, portalId, title, author, content, date, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
-    packet.news.forEach((el, i, arr) => {
-      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?) "
-      if (i < arr.length - 1) {
-        qs += ", "
-      }
-      params.push(el.lesson_id, el.portalId,
-        el.subject, el.author, el.content,
-        el.date, el.attach ? el.attach.AttachmentID : null,
-        el.attach ? el.attach.CourseType : null,
-        el.attach ? el.attach.AttachmentFileName : null
-      )
-    })
-    qs += ";"
+    if (packet.news.length > 0) {
+      qs += "INSERT INTO temp_notice (lesson_id, portalId, title, author, content, date, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
+      packet.news.forEach((el, i, arr) => {
+        qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?) "
+        if (i < arr.length - 1) {
+          qs += ", "
+        }
+        params.push(el.lesson_id, el.portalId,
+          el.subject, el.author, el.content,
+          el.date, el.attach ? el.attach.AttachmentID : null,
+          el.attach ? el.attach.CourseType : null,
+          el.attach ? el.attach.AttachmentFileName : null
+        )
+      })
+      qs += ";"
+    }
 
-    qs += "INSERT INTO temp_material (lesson_id, schedule, outline, date, link, video, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
-    packet.material.forEach((el, i, arr) => {
-      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?) "
-      if (i < arr.length - 1) {
-        qs += ", "
-      }
-      params.push(el.lesson_id, el.schedule,
-        el.outline, el.date, el.link,
-        el.video, el.lecture ? el.lecture.id : null,
-        el.lecture ? el.lecture.type : null,
-        el.lecture ? el.lecture.filename : null
-      )
-    })
-    qs += ";"
+    if (packet.material.length > 0) {
+      qs += "INSERT INTO temp_material (lesson_id, schedule, outline, date, link, video, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
+      packet.material.forEach((el, i, arr) => {
+        qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?) "
+        if (i < arr.length - 1) {
+          qs += ", "
+        }
+        params.push(el.lesson_id, el.schedule,
+          el.outline, el.date, el.link,
+          el.video, el.lecture ? el.lecture.id : null,
+          el.lecture ? el.lecture.type : null,
+          el.lecture ? el.lecture.filename : null
+        )
+      })
+      qs += ";"
+    }
 
+    if (packet.homework.length > 0) {
+      qs += "INSERT INTO temp_homework (lesson_id, wkId, title, schedule, description, isGroup, freeSubmit, deadline, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
+      packet.homework.forEach((el, i, arr) => {
+        qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+        if (i < arr.length - 1) {
+          qs += ", "
+        }
+        params.push(el.lesson_id, el.wk_id,
+          el.subject, el.schedule, el.description,
+          el.isGroup, el.freeSubmit, el.deadline,
+          el.attach ? el.attach.id : null,
+          el.attach ? el.attach.type : null,
+          el.attach ? el.attach.filename : null
+        )
+      })
+      qs += ";"
+    }
 
-    qs += "INSERT INTO temp_homework (lesson_id, wkId, title, schedule, description, isGroup, freeSubmit, deadline, attachPortalId, attachPortalType, attachPortalFilename) VALUES "
-    packet.homework.forEach((el, i, arr) => {
-      qs += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-      if (i < arr.length - 1) {
-        qs += ", "
-      }
-      params.push(el.lesson_id, el.wk_id,
-        el.subject, el.schedule, el.description,
-        el.isGroup, el.freeSubmit, el.deadline,
-        el.attach ? el.attach.id : null,
-        el.attach ? el.attach.type : null,
-        el.attach ? el.attach.filename : null
-      )
-    })
-    qs += ";"
-
-    qs += "INSERT INTO temp_user_hw (lesson_id, wkId, user_uid, grade, comment) VALUES "
-    packet.userHW.forEach((el, i, arr) => {
-      qs += "(?, ?, ?, ?, ?) "
-      if (i < arr.length - 1) {
-        qs += ", "
-      }
-      params.push(el.lesson_id, el.wk_id, el.user_uid, el.grade, el.comment)
-    })
-    qs += ";"
+    if (packet.userHW.length > 0) {
+      qs += "INSERT INTO temp_user_hw (lesson_id, wkId, user_uid, grade, comment) VALUES "
+      packet.userHW.forEach((el, i, arr) => {
+        qs += "(?, ?, ?, ?, ?) "
+        if (i < arr.length - 1) {
+          qs += ", "
+        }
+        params.push(el.lesson_id, el.wk_id, el.user_uid, el.grade, el.comment)
+      })
+      qs += ";"
+    }
 
     // insert attachment
 
@@ -240,35 +253,34 @@ function task() {
       + "SELECT attachPortalId AS portalId, "
       + "   attachPortalType AS portalType, "
       + "   attachPortalFilename AS portalFilename "
-      + "FROM temp_notice "
+      + "FROM temp_notice LEFT JOIN attachments ON temp_notice.attachPortalId = attachments.portalId "
       + "WHERE attachPortalId IS NOT NULL "
       + "  AND attachPortalType IS NOT NULL "
       + "  AND attachPortalFilename IS NOT NULL "
-      + "GROUP BY portalId "
-      + "ON DUPLICATE KEY UPDATE portalId=portalId;"
+      + "  AND attachments.portalId IS NULL "
+      + "GROUP BY portalId;"
 
     qs += "INSERT INTO attachments (portalId, portalType, portalFilename) "
       + "SELECT attachPortalId AS portalId, "
       + "   attachPortalType AS portalType, "
       + "   attachPortalFilename AS portalFilename "
-      + "FROM temp_material "
+      + "FROM temp_material LEFT JOIN attachments ON temp_material.attachPortalId = attachments.portalId "
       + "WHERE attachPortalId IS NOT NULL "
       + "  AND attachPortalType IS NOT NULL "
       + "  AND attachPortalFilename IS NOT NULL "
-      + "GROUP BY portalId "
-      + "ON DUPLICATE KEY UPDATE portalId=portalId;"
-
+      + "  AND attachments.portalId IS NULL "
+      + "GROUP BY portalId;"
 
     qs += "INSERT INTO attachments (portalId, portalType, portalFilename) "
       + "SELECT attachPortalId AS portalId, "
       + "   attachPortalType AS portalType, "
       + "   attachPortalFilename AS portalFilename "
-      + "FROM temp_homework "
+      + "FROM temp_homework LEFT JOIN attachments ON temp_homework.attachPortalId = attachments.portalId "
       + "WHERE attachPortalId IS NOT NULL "
       + "  AND attachPortalType IS NOT NULL "
       + "  AND attachPortalFilename IS NOT NULL "
-      + "GROUP BY portalId "
-      + "ON DUPLICATE KEY UPDATE portalId=portalId;"
+      + "  AND attachments.portalId IS NULL "
+      + "GROUP BY portalId;"
 
     // update attach_id for temporary table
     qs += "UPDATE attachments INNER JOIN temp_homework ON "
@@ -287,9 +299,12 @@ function task() {
       + "SET temp_notice.attach_id = attachments.attach_id;"
 
     // update news
+    qs += "UPDATE temp_notice as tn RIGHT JOIN notices as n ON tn.portalId = n.portalId "
+      + "SET n.lesson_id = tn.lesson_id, n.title = tn.title, n.author = tn.author, n.content = tn.content, n.attach_id = tn.attach_id, n.date = tn.date;"
+
+    // Insert new row of news
     qs += "INSERT INTO notices (lesson_id, portalId, title, author, content, attach_id, date) "
-      + "SELECT lesson_id, portalId, title, author, content, attach_id, date FROM temp_notice as n "
-      + "ON DUPLICATE KEY UPDATE lesson_id = n.lesson_id, title = n.title, author = n.author, content = n.content, attach_id = n.attach_id, date = n.date;"
+      + "SELECT tn.lesson_id, tn.portalId, tn.title, tn.author, tn.content, tn.attach_id, tn.date FROM temp_notice as tn LEFT JOIN notices as n ON tn.portalId = n.portalId WHERE notice_id IS NULL;"
 
     // update material
     qs += "TRUNCATE TABLE materials;"
@@ -297,10 +312,13 @@ function task() {
       + "SELECT lesson_id, schedule, outline, date, attach_id, link, video FROM temp_material as m;"
 
     // update homeworks
+    qs += "UPDATE temp_homework as th RIGHT JOIN homeworks as h ON th.lesson_id = h.lesson_id AND th.wkId = h.wkId "
+      + "SET h.title = th.title, h.schedule = th.schedule, h.description = th.description, h.attach_id = th.attach_id, h.isGroup = th.isGroup, h.freeSubmit = th.freeSubmit, h.deadline = th.deadline;"
 
+    // Insert new row to homeworks
     qs += "INSERT INTO homeworks (lesson_id, wkId, title, schedule, description, attach_id, isGroup, freeSubmit, deadline) "
-      + "SELECT lesson_id, wkId, title, schedule, description, attach_id, isGroup, freeSubmit, deadline FROM temp_homework as h "
-      + "ON DUPLICATE KEY UPDATE title = h.title, schedule = h.schedule, description = h.description, attach_id = h.attach_id, isGroup = h.isGroup, freeSubmit = h.freeSubmit, deadline = h.deadline;"
+      + "SELECT th.lesson_id, th.wkId, th.title, th.schedule, th.description, th.attach_id, th.isGroup, th.freeSubmit, th.deadline FROM temp_homework as th LEFT JOIN homeworks as h ON th.lesson_id = h.lesson_id AND th.wkId = h.wkId "
+      + "WHERE homework_id IS NULL;"
 
     // update student's homework
     qs += "UPDATE homeworks as h INNER JOIN temp_user_hw as uh ON "
@@ -308,9 +326,13 @@ function task() {
       + "  AND h.wkId = uh.wkId "
       + "SET uh.homework_id = h.homework_id;"
 
+    qs += "UPDATE temp_user_hw as uh RIGHT JOIN student_homeworks as sh "
+      + "ON uh.user_uid = sh.user_uid AND uh.homework_id = sh.homework_id "
+      + "SET sh.grade = uh.grade, sh.comment = uh.comment;"
+
     qs += "INSERT INTO student_homeworks (user_uid, homework_id, grade, comment) "
-      + "SELECT user_uid, homework_id, grade, comment FROM temp_user_hw as uh "
-      + "ON DUPLICATE KEY UPDATE grade = uh.grade, comment = uh.comment;"
+      + "SELECT uh.user_uid, uh.homework_id, uh.grade, uh.comment FROM temp_user_hw as uh LEFT JOIN student_homeworks as sh ON uh.user_uid = sh.user_uid AND uh.homework_id = sh.homework_id "
+      + "WHERE sh.homework_id IS NULL;"
 
     // remove invalid user_uid device
 
@@ -325,21 +347,15 @@ function task() {
       params.push(el)
     });
 
-    return new Promise((resolve, reject) => {
-      dbHelper.query(qs, params, (err, result) => {
-        if (err) {
-          reject(err)
-        } else {
-          fs.writeJSONSync(__refreshBase + 'sql_exec_result.json', result);
-          resolve(result);
-        }
-      });
-    })
+    // Delete temporary table
+    qs += "DROP TABLE temp_user_hw, temp_homework, temp_notice, temp_material;"
 
+    return dbHelper.transaction(qs, params);
   }
 
   let pushNotification = (packet) => {
     console.log('to push notfication to user');
+    console.log('the least insert id is')
     console.log(packet);
   }
 
