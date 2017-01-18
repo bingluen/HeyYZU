@@ -7,9 +7,10 @@ global.__SystemBase = __dirname + '/'
 var dbHelper = require(__mobileAPIBase + 'module/dbHelper');
 var helper = require(__mobileAPIBase + 'module/helper');
 var rsa = require(__mobileAPIBase + 'module/rsa');
+var fcm = require(__mobileAPIBase + 'module/fcm');
 var fs = require('fs-extra');
 var crypto = require('crypto');
-var spawn = require('child_process').spawn,
+var spawn = require('child_process').spawn;
 
 
 timeInterval = 15 * 60 * 1000;
@@ -31,8 +32,7 @@ function task() {
     + " WHERE `lessonYear` = ? AND `lessonSemester` = ? "
     + " AND user_uid in (SELECT distinct owner_user FROM device) "
     + ") as lesson "
-    + " ON lesson.`user_uid` = student.`user_uid`"
-    + "GROUP BY user_uid;"
+    + " ON lesson.`user_uid` = student.`user_uid`;"
     let params = [helper.getYearNow(), helper.getSemesterNow()];
     dbHelper.query(qs, params, (err, result) => {
       if (err) {
@@ -127,8 +127,7 @@ function task() {
 
     // SELECT least id for each TABLE
     qs += "SELECT 'homeworks' as tableName, max(homework_id) as least_id FROM homeworks "
-      + "UNION SELECT 'notices' as tableName, max(notice_id) as least_id FROM notices "
-      + "UNION SELECT 'materials' as tableName, max(material_id) as least_id FROM materials;"
+      + "UNION SELECT 'notices' as tableName, max(notice_id) as least_id FROM notices;"
 
     // create temporary table
     qs += "CREATE TEMPORARY TABLE IF NOT EXISTS temp_notice ( "
@@ -348,15 +347,76 @@ function task() {
     });
 
     // Delete temporary table
-    qs += "DROP TABLE temp_user_hw, temp_homework, temp_notice, temp_material;"
+    qs += "DROP TABLE temp_user_hw; DROP TABLE temp_homework; DROP TABLE temp_notice; DROP TABLE temp_material;"
 
-    return dbHelper.transaction(qs, params);
+    return dbHelper.queryPromise(qs, params);
   }
 
   let pushNotification = (packet) => {
+    let leastId = packet[0].reduce((pv, el) => {
+      pv[el.tableName] = el.least_id
+      return pv;
+    }, {})
     console.log('to push notfication to user');
     console.log('the least insert id is')
-    console.log(packet);
+    console.log(leastId);
+    let qs = "";
+    qs += "SELECT hw.`lesson_id`,  "
+      + "       hw.`title`,  "
+      + "       course.`courseCode`,  "
+      + "       course.`courseName`  "
+      + "FROM course  "
+      + "RIGHT JOIN  "
+      + "    (SELECT hw.`lesson_id`,  "
+      + "            hw.`title`,  "
+      + "            lesson.`courseCode`  "
+      + "     FROM lesson  "
+      + "     RIGHT JOIN  "
+      + "         (SELECT homeworks.`lesson_id`,  "
+      + "                 homeworks.`title` "
+      + "          FROM homeworks  "
+      + "          WHERE homework_id > 5) AS hw ON lesson.`lesson_id` = hw.`lesson_id`) AS hw ON course.`courseCode` = hw.`courseCode` ;  "
+    qs += "SELECT news.`lesson_id`, "
+      + "       news.`title`, "
+      + "       course.`courseCode`, "
+      + "       course.`courseName` "
+      + "FROM course "
+      + "RIGHT JOIN "
+      + "    (SELECT news.`lesson_id`, "
+      + "            news.`title`, "
+      + "            lesson.`courseCode` "
+      + "     FROM lesson "
+      + "     RIGHT JOIN "
+      + "         (SELECT notices.`lesson_id`, "
+      + "                 notices.`title` "
+      + "          FROM notices "
+      + "          WHERE notice_id > ?) AS news ON lesson.`lesson_id` = news.`lesson_id`) AS news ON course.`courseCode` = news.`courseCode` ; "
+
+    let params = [leastId.homeworks, leastId.notices];
+
+    let pushNotification = (packet) => {
+      let fcmInstance = new fcm();
+      let hwPush = packet[0].map((el) => {
+        fcmInstance.setNotificationTitle(el.courseCode + ' ' + el.courseName);
+        fcmInstance.setNotificationBody('[新增作業]' + el.title);
+        fcmInstance.setTopic('lesson' + el.lesson_id);
+        return fcmInstance.PostFCM()
+      });
+
+      let newsPush = packet[1].map((el) => {
+        fcmInstance.setNotificationTitle(el.courseCode + ' ' + el.courseName);
+        fcmInstance.setNotificationBody('[最新消息]' + el.title);
+        fcmInstance.setTopic('lesson' + el.lesson_id);
+        return fcmInstance.PostFCM();
+      });
+
+      return Promise.all(hwPush.concat(newsPush));
+    }
+
+    return dbHelper.queryPromise(qs, params)
+      .then((result) => {
+        return pushNotification(result);
+      })
   }
 
   lookupUser
@@ -377,7 +437,7 @@ function task() {
       setTimeout(task, timeInterval);
     }, (err) => {
       console.error(err);
-      setTimeout(task, timeInterval);;
+      setTimeout(task, timeInterval);
     })
 
 }
