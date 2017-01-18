@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import re
 import sys
 
-URL_LOGIN = 'https://portalx.yzu.edu.tw/PortalSocialVB/Login.aspx'
+URL_LOGIN = 'https://unipop.yzu.edu.tw/PortalSocialVB/Login.aspx'
 
 portalx_headers = {
     'Host':'portalx.yzu.edu.tw',
